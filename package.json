@@ -1,0 +1,27 @@
+{
+  "name": "tooliify-playwright",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Tooliify QA automation – Playwright + TypeScript",
+  "engines": { "node": ">=20.12" },
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --project=ui-chromium --headed",
+    "test:ui-mode": "playwright test --ui",
+    "test:smoke": "playwright test --grep @smoke",
+    "test:api": "playwright test --project=api",
+    "test:auth": "playwright test modules/auth",
+    "test:profile": "playwright test modules/profile",
+    "test:profile:headed": "playwright test modules/profile --headed",
+    "test:tools": "playwright test modules/tools --project=ui-merchant",
+    "test:tools:headed": "playwright test modules/tools --project=ui-merchant --headed",
+    "test:catalog": "playwright test modules/tools/catalog",
+    "test:tools:api": "playwright test modules/tools/api --project=api",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1",
+    "@types/node": "22.10.2",
+    "typescript": "5.7.2"
+  }
+}
