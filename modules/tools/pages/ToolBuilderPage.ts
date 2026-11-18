@@ -210,7 +210,15 @@ export class ToolBuilderPage {
   async addAndWait(tool: ToolData, name: string, storeValue?: string) {
     // نفتح الـ builder ونملا ونحفظ.
     await this.open(tool.slug);
+    // بنسجّل لو الصفحة بعتت طلب POST للسيرفر (الحفظ).
+    let sent = false;
+    this.page.on('request', (request) => {
+      if (request.method() === 'POST') sent = true;
+    });
     await this.saveTool(tool, name, storeValue);
+    // ساعات ضغطة "حفظ" مبتبعتش أي طلب للسيرفر (بتحصل مرة من كل كام تشغيل): لو مفيش طلب اتبعت بعد 5 ثواني نضغط تاني.
+    await this.page.waitForTimeout(5000);
+    if (!sent && !/\/\d+$/.test(this.page.url())) await this.saveButton.click();
     // نستنى صفحة تعديل الأداة الجديدة.
     await this.page.waitForURL(new RegExp(`${paths.myTools}/${tool.slug}/\\d+$`), { timeout: 60_000 });
     // نستنى لحد ما نموذجها يجهز.

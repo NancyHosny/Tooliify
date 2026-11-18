@@ -1,7 +1,7 @@
 // نستورد أنواع Playwright (الصفحة والـ Locator).
 import { Page, Locator } from '@playwright/test';
 // نستورد بيانات التست (المسارات وبادئة QA).
-import { paths, qaPrefix } from '../../../test-data/test-data';
+import { paths, qaPrefix, myToolsTexts } from '../../../test-data/test-data';
 
 // Page Object لصفحة "أدواتي" (SRS 10.9 و 10.10): جدول فيه صف لكل أداة،
 // وعدد الأدوات المضافة، ونافذة الحذف.
@@ -22,6 +22,13 @@ export class MyToolsPage {
   readonly instanceRows: Locator;
   // صفوف الأدوات اللي اتعملت من التستات (اسمها بيبدأ ببادئة QA).
   readonly qaRows: Locator;
+  // زرار "جدولة الادوات" (بيفتح صفحة الجدولة).
+  readonly scheduleButton: Locator;
+  // قايمة "العناصر في الصفحة" ونص الترقيم "1 - N من N عنصر".
+  readonly pageSize: Locator;
+  readonly paginationText: Locator;
+  // رأس الجدول (أسماء الأعمدة).
+  readonly headerRow: Locator;
   // نافذة الحذف وأزرارها.
   readonly deleteDialog: Locator;
   readonly confirmDeleteButton: Locator;
@@ -44,6 +51,10 @@ export class MyToolsPage {
     this.instanceRows = page.locator('tbody div[style*="grid-template-columns"]');
     this.deleteButtons = this.rows.getByRole('button', { name: 'حذف' });
     this.qaRows = this.instanceRows.filter({ hasText: qaPrefix });
+    this.scheduleButton = page.getByRole('button', { name: myToolsTexts.scheduleButton });
+    this.pageSize = page.locator('#tablePageSize');
+    this.paginationText = page.getByText(/\d+ - \d+ من \d+ عنصر/);
+    this.headerRow = page.locator('thead');
     // نافذة الحذف هي dialog.
     this.deleteDialog = page.getByRole('dialog');
     this.confirmDeleteButton = this.deleteDialog.getByRole('button', { name: 'حذف' });
@@ -63,6 +74,22 @@ export class MyToolsPage {
   // صف أداة معينة بنلاقيه باسمها.
   row(name: string): Locator {
     return this.instanceRows.filter({ hasText: name });
+  }
+
+  // زرار "معاينة الأداة" بتاع أداة معينة (بيفتح صفحة الأداة).
+  previewButton(name: string): Locator {
+    return this.row(name).getByRole('button', { name: myToolsTexts.previewButton });
+  }
+
+  // زرار "تخصيص <اسم الأداة>" بتاع أداة معينة (بيفتح صفحة تعديلها).
+  editButton(name: string): Locator {
+    return this.row(name).getByRole('button', { name: `${myToolsTexts.editButtonPrefix} ${name}` });
+  }
+
+  // رقم كارت الإحصائيات اللي عنوانه كذا (مثلًا "اجمالي الادوات المفعلة"): الرقم مكتوب في strong جنب العنوان.
+  async statValue(label: string): Promise<number> {
+    const text = await this.page.getByText(label, { exact: true }).locator('xpath=..').locator('strong').innerText();
+    return Number(text);
   }
 
   // زرار "حذف" بتاع أداة معينة.

@@ -4,8 +4,10 @@ import { test, expect } from '../../shared/bug-capture';
 import { ToolsCatalogPage } from '../pages/ToolsCatalogPage';
 import { ToolBuilderPage } from '../pages/ToolBuilderPage';
 import { MyToolsPage } from '../pages/MyToolsPage';
+import { ToolsCatalogClient } from '../clients/ToolsCatalogClient';
+import { getMerchantToken } from '../../shared/merchant-token';
 // نستورد بيانات التست.
-import { ToolData, paths, newQaToolName, invalidToolNames, notALink, messages } from '../../../test-data/test-data';
+import { ToolData, apiUrl, paths, newQaToolName, invalidToolNames, notALink, messages, myToolsTexts } from '../../../test-data/test-data';
 
 // تستات "الإضافة" لأداة واحدة (SRS 10.9): الكتالوج ← الـ builder ← "حفظ التعديلات" ← الأداة تظهر في "أدواتي".
 // كل أداة بتتعمل هنا اسمها بيبدأ بـ "QA-" وبتتحذف بعد التست.
@@ -35,11 +37,17 @@ export function addTests(tool: ToolData) {
       if (mayBeSaved) await myTools.deleteQaTools();
     });
 
-    // حفظ الـ builder بيضيف الأداة لـ "أدواتي" كأداة مفعّلة.
-    test('saved tool appears in my tools as active', { tag: '@smoke' }, async ({ page }) => {
-      // نفتكر عدد الأدوات المضافة دلوقتي.
+    // حفظ الـ builder بيضيف الأداة لـ "أدواتي" بنفس بياناتها: الاسم والوصف والحالة والجدولة، والعدد والإحصائيات بيزيدوا،
+    // وصفحة الأداة بتفتح من "أدواتي" بنفس البيانات اللي اتكتبت.
+    test('saved tool appears in my tools with its own data', { tag: '@smoke' }, async ({ page, playwright }) => {
+      // الوصف الأصلي للأداة بنجيبه من الـ API عشان نقارن بيه.
+      test.skip(!apiUrl, 'API_URL is not set in .env');
+      const request = await playwright.request.newContext({ baseURL: apiUrl });
+      const description = (await (await new ToolsCatalogClient(request, await getMerchantToken(request)).getTool(tool.id)).json()).data.description;
+      // نفتكر عدد الأدوات المضافة والمفعّلة دلوقتي.
       await myTools.open();
       const before = await myTools.addedCount();
+      const activeBefore = await myTools.statValue(myToolsTexts.activeTotal);
       // نفتح الـ builder ونحفظ باسم QA.
       const name = newQaToolName(tool.slug);
       mayBeSaved = true;
@@ -47,11 +55,26 @@ export function addTests(tool: ToolData) {
       await builder.saveTool(tool, name);
       // المتوقع: صفحة الأداة الجديدة (/ar/my-tools/<slug>/<id>) بعد الحفظ.
       await expect(page).toHaveURL(new RegExp(`${paths.myTools}/${tool.slug}/\\d+$`), { timeout: 60_000 });
-      // المتوقع: "أدواتي" بتعرض الأداة مفعّلة والعدد زاد واحد.
+      // المتوقع: "أدواتي" بتعرض الأداة باسمها ووصفها، مفعّلة وغير مجدولة.
       await myTools.open();
-      await expect(myTools.row(name)).toBeVisible();
+      const row = myTools.row(name);
+      await expect(row).toBeVisible();
+      await expect(row).toContainText(description);
       await expect(myTools.statusBadge(name)).toHaveText(messages.toolActive);
+      await expect(row).toContainText(myToolsTexts.notScheduled);
+      // المتوقع: العدد وكارت "المفعلة" زادوا واحد.
       expect(await myTools.addedCount()).toBe(before + 1);
+      expect(await myTools.statValue(myToolsTexts.activeTotal)).toBe(activeBefore + 1);
+      // المتوقع: أزرار المعاينة والتخصيص والحذف ظاهرة.
+      await expect(myTools.previewButton(name)).toBeVisible();
+      await expect(myTools.editButton(name)).toBeVisible();
+      await expect(myTools.deleteButton(name)).toBeVisible();
+      // نفتح صفحة الأداة من "تخصيص".
+      await myTools.editButton(name).click();
+      // المتوقع: صفحة الأداة الجديدة، والاسم (والرابط لو الأداة ليها رابط) هما اللي اتكتبوا.
+      await expect(page).toHaveURL(new RegExp(`${paths.myTools}/${tool.slug}/\\d+$`));
+      await expect(builder.nameInput).toHaveValue(name);
+      if (tool.link !== undefined) await expect(builder.linkInput).toHaveValue(tool.link);
     });
 
     // بعد الحفظ كارت الكتالوج بيقول "مضافة بالفعل".

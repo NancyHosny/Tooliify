@@ -34,4 +34,17 @@ export class StorePage {
     }
     return false;
   }
+
+  // نعمل reload للمتجر لحد ما النص يختفي من الصفحة. بيرجّع true لو اختفى.
+  async waitUntilGone(text: string, seconds: number): Promise<boolean> {
+    const end = Date.now() + seconds * 1000;
+    while (Date.now() < end) {
+      // نستنى كام ثانية، وبعدين نعمل reload ونشوف النص لسه موجود ولا لأ.
+      await this.page.waitForTimeout(5000);
+      await this.page.reload({ waitUntil: 'domcontentloaded' });
+      await this.page.waitForTimeout(3000);
+      if (!(await this.contains(text))) return true;
+    }
+    return false;
+  }
 }

@@ -43,6 +43,16 @@ export class MyToolsClient {
     return this.request.get(`${PATHS.myTools}/${id}`, { headers: this.headers() });
   }
 
+  // GET /merchant/tools/my/{merchantTool}/configurations – إعدادات أداة متضافة (زي ما بتتحفظ في الـ builder).
+  async getConfigurations(id: number | string) {
+    return this.request.get(`${PATHS.myTools}/${id}/configurations`, { headers: this.headers() });
+  }
+
+  // PATCH /merchant/tools/my/{merchantTool}/toggle – نقلب الأداة بين مفعّلة وغير مفعّلة.
+  async toggleTool(id: number | string) {
+    return this.request.patch(`${PATHS.myTools}/${id}/toggle`, { headers: this.headers() });
+  }
+
   // DELETE /merchant/tools/my/{merchantTool} – نشيل أداة متضافة.
   async deleteTool(id: number | string) {
     return this.request.delete(`${PATHS.myTools}/${id}`, { headers: this.headers() });

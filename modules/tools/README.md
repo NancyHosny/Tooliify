@@ -21,6 +21,13 @@ The test cases are written ONCE in `tool-tests/*-tests.ts`; every spec file is 3
 (`test-data/test-data.ts`, list `toolList`). To change a test case for all tools, change it in `tool-tests/`.
 
 Other folders: `catalog/` (whole catalog: tabs, badges, search, access, UI vs API) · `my-tools/` ("أدواتي" page) · `api/` (API tests)
+
+What the "أدواتي" tests cover (`my-tools/` + the add / edit tests of every tool):
+- `my-tools/view.spec.ts`: title, count, add button, the six columns, "جدولة الادوات", page size list, the row (name, description, status, schedule, preview / edit / delete buttons), "معاينة الأداة" and "تخصيص" open the tool page, the three total cards (مفعلة / غير مفعلة / مجدولة) against the API and after stopping or scheduling a tool, "N اداة مضافة" (tools) against the pagination (table rows), access without login.
+- `my-tools/schedule-tab.spec.ts`: the "الجدولة" tab inside the tool page (starts off, shows the date and time fields, opens the calendar).
+- add test of every tool (`saved tool appears in my tools with its own data`): after saving, "أدواتي" shows the tool with the typed name, its description, active, not scheduled, the count and the active total grow by one, and "تخصيص" opens the tool page with the same name (and link).
+- edit test of every tool (`every tab of the tool page opens its panel`): each tab of the tool page (عام, الظهور, التصميم, الجدولة...) opens its section.
+
 · `pages/` and `clients/` (page objects and API clients).
 
 ## Run
@@ -45,10 +52,9 @@ Each store test types a unique value in one field of the builder (`storeField` o
 
 | Test | What it checks |
 |---|---|
-| added tool reaches the store file | the value is in the public file after add |
-| added tool is shown on the store page | the store page itself contains the value (only tools drawn on page load: `shownOnLoad`) |
-| edited tool updates the store file | the new value is in the file and the old one is gone |
-| deleted tool is removed from the store file | the value is gone after delete |
+| added tool appears in the store | the value is in the public file after add, and on the store page itself (tools drawn on page load: `shownOnLoad`) |
+| edited tool appears in the store with the new value | the new value is in the file (and on the store page for `shownOnLoad` tools) and the old one is gone |
+| deleted tool disappears from the store | the value is gone from the file and from the store page |
 
 Every tool now has a mapped field. Two tools use a number field (`storeKind: 'number'`): customer-reviews (`config.ratings_count`) and purchase-counter (`config.purchaseCount`). اشتري منتج keeps its message in a folded section ("الرسالة 1"), so its tool data has `storeSection` and the builder opens that section first.
 The name of the tool is not written in the file, so the unique value is the way to find it.

@@ -12,6 +12,11 @@
 | [01-auth.md](01-auth.md) | موديول تسجيل الدخول |
 | [02-profile.md](02-profile.md) | موديول البروفايل |
 | [03-tools-general.md](03-tools-general.md) | الكتالوج وأدواتي وAPI الأدوات |
+| [04-scheduling.md](04-scheduling.md) | موديول الجدولة |
+| [05-coupons.md](05-coupons.md) | موديول الكوبونات |
+| [06-dashboard.md](06-dashboard.md) | موديول لوحة التحكم |
+| [07-storefront.md](07-storefront.md) | موديول المتجر |
+| [08-tools-store.md](08-tools-store.md) | الاستور لكل أداة من الـ 33 لوحدها (إضافة / تعديل / إيقاف / حذف ← المتجر) |
 
 ## الأدوات (ملف لكل أداة)
 

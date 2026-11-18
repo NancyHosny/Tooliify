@@ -17,6 +17,14 @@
     "test:tools:headed": "playwright test modules/tools --project=ui-merchant --headed",
     "test:catalog": "playwright test modules/tools/catalog",
     "test:tools:api": "playwright test modules/tools/api --project=api",
+    "test:scheduling": "playwright test modules/scheduling",
+    "test:scheduling:headed": "playwright test modules/scheduling --project=ui-merchant --headed",
+    "test:coupons": "playwright test modules/coupons",
+    "test:coupons:headed": "playwright test modules/coupons --project=ui-merchant --headed",
+    "test:dashboard": "playwright test modules/dashboard",
+    "test:dashboard:headed": "playwright test modules/dashboard --project=ui-merchant --headed",
+    "test:storefront": "playwright test modules/storefront",
+    "test:storefront:headed": "playwright test modules/storefront --project=ui-merchant --headed",
     "report": "playwright show-report"
   },
   "devDependencies": {

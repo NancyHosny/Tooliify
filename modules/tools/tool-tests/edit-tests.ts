@@ -62,13 +62,33 @@ export function editTests(tool: ToolData) {
     }
 
     // الأدوات اللي رابطها بيتفحص: الرابط الغلط مرفوض في التعديل كمان.
-    test('text that is not a link is rejected', { tag: '@regression' }, async ({ page }) => {
+    // التست ده جوه describe لوحده، عشان التخطي بيحصل قبل ما الأداة تتضاف (من غير ما نضيّع وقت في إضافة أداة مش هنستخدمها).
+    test.describe('link', () => {
       test.skip(!tool.linkChecks, 'this tool has no checked link field');
-      // نبدّل الرابط بنص غلط ونحفظ.
-      await builder.saveWithName(name, notALink);
-      // المتوقع: رسالة الفاليديشن وإحنا لسه في صفحة التعديل.
-      await expect(page.getByText(messages.linkInvalid).first()).toBeVisible();
-      await expect(page).toHaveURL(new RegExp(`${paths.myTools}/${tool.slug}/\\d+$`));
+      test('text that is not a link is rejected', { tag: '@regression' }, async ({ page }) => {
+        // نبدّل الرابط بنص غلط ونحفظ.
+        await builder.saveWithName(name, notALink);
+        // المتوقع: رسالة الفاليديشن وإحنا لسه في صفحة التعديل.
+        await expect(page.getByText(messages.linkInvalid).first()).toBeVisible();
+        await expect(page).toHaveURL(new RegExp(`${paths.myTools}/${tool.slug}/\\d+$`));
+      });
+    });
+
+    // كل تاب في صفحة الأداة (عام، الظهور، التصميم...) بيفتح قسمه.
+    test('every tab of the tool page opens its panel', { tag: '@regression' }, async ({ page }) => {
+      // نجيب كل التابات (الأداة ممكن يكون فيها تابات مختلفة عن غيرها).
+      const tabs = page.getByRole('tab');
+      const total = await tabs.count();
+      // المتوقع: تاب "عام" موجود في كل الأدوات.
+      await expect(page.getByRole('tab', { name: 'عام', exact: true })).toBeVisible();
+      // نفتح كل تاب.
+      for (let i = 0; i < total; i++) {
+        const tabName = (await tabs.nth(i).innerText()).trim();
+        await tabs.nth(i).click();
+        // المتوقع: التاب بقى متحدد وقسمه ظاهر.
+        await expect(tabs.nth(i), tabName).toHaveAttribute('aria-selected', 'true');
+        await expect(page.getByRole('tabpanel', { name: tabName }), tabName).toBeVisible();
+      }
     });
 
     // "رجوع" بيخرّج من صفحة التعديل من غير ما يحفظ التغيير.

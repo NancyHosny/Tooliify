@@ -8,9 +8,10 @@ import { StoreClient } from '../clients/StoreClient';
 // نستورد بيانات التست.
 import { ToolData, paths, newQaToolName, storeMarker } from '../../../test-data/test-data';
 
-// تستات "الاستور" لأداة واحدة: هل الأداة بتوصل فعلًا لمتجر التاجر؟
-// بنكتب قيمة مميزة في الـ builder، وبعدين بندوّر عليها في الملف العام اللي المتجر بيحمّله
-// (المتجر بيرسم الأدوات المفعّلة من الملف ده)، وفي صفحة المتجر نفسها للأدوات اللي بتترسم عند تحميل الصفحة.
+// تستات "الاستور" لأداة واحدة: هل الأداة بتظهر فعلًا في متجر التاجر بعد الإضافة والتعديل والحذف؟
+// بنكتب قيمة مميزة في الـ builder، وبعدين بندوّر عليها في مكانين:
+//   1) الملف العام اللي المتجر بيحمّله (المتجر بيرسم الأدوات المفعّلة من الملف ده)، وده بيتعمل لكل الأدوات.
+//   2) صفحة المتجر الحقيقية نفسها، للأدوات اللي بتترسم عند تحميل الصفحة (shownOnLoad). الباقي بيظهر بعد حركة من الزائر.
 // كل أداة بتتعمل هنا اسمها بيبدأ بـ "QA-" وبتتحذف بعد التست.
 // كل فولدر أداة بينده الدالة دي من ملف store.spec.ts بتاعه.
 export function storeTests(tool: ToolData) {
@@ -28,6 +29,11 @@ export function storeTests(tool: ToolData) {
     let name = '';
     let first = { value: '', needle: '' };
 
+    // دالة بتستنى لحد ما القيمة تبقى موجودة (أو مش موجودة) في الملف العام اللي المتجر بيحمّله.
+    async function waitForFile(needle: string, present: boolean) {
+      await expect.poll(() => storeFile.scriptHas(needle), { timeout: 90_000, intervals: [3_000] }).toBe(present);
+    }
+
     // قبل كل تست: نضيف أداة QA فيها قيمة مميزة في حقل الاستور (والصفحة بعد كده بتبقى صفحة تعديلها).
     test.beforeEach(async ({ page }) => {
       builder = new ToolBuilderPage(page);
@@ -43,44 +49,50 @@ export function storeTests(tool: ToolData) {
       await myTools.deleteQaTools();
     });
 
-    // ملف الاستور فيه القيمة المميزة بعد إضافة الأداة.
-    test('added tool reaches the store file', { tag: '@smoke' }, async () => {
+    // الأداة اللي اتضافت بتظهر في المتجر.
+    test('added tool appears in the store', { tag: '@smoke' }, async () => {
       // المتوقع: القيمة المميزة موجودة في الملف العام (بيتعاد كتابته بعد الحفظ بكام ثانية).
-      await expect.poll(() => storeFile.scriptHas(first.needle), { timeout: 90_000, intervals: [3_000] }).toBe(true);
+      await waitForFile(first.needle, true);
+      // المتوقع: لو الأداة بتترسم مع تحميل الصفحة، صفحة المتجر نفسها فيها القيمة (بنعمل reload لحد ما تظهر).
+      if (tool.shownOnLoad) {
+        await storePage.open();
+        expect(await storePage.waitUntilContains(first.needle, 120)).toBe(true);
+      }
     });
 
-    // الأدوات اللي بتترسم عند تحميل الصفحة: صفحة المتجر نفسها لازم تعرض القيمة المميزة.
-    test('added tool is shown on the store page', { tag: '@smoke' }, async () => {
-      test.skip(!tool.shownOnLoad, 'this tool is not drawn when the store page loads (it appears after a visitor action)');
-      // نستنى لحد ما الملف يبقى فيه القيمة وبعدين نفتح المتجر.
-      await expect.poll(() => storeFile.scriptHas(first.needle), { timeout: 90_000, intervals: [3_000] }).toBe(true);
-      await storePage.open();
-      // المتوقع: صفحة المتجر فيها القيمة المميزة (بنعمل reload للصفحة لحد ما تظهر).
-      expect(await storePage.waitUntilContains(first.needle, 120)).toBe(true);
-    });
-
-    // تعديل الأداة بيبدّل القيمة في ملف الاستور.
-    test('edited tool updates the store file', { tag: '@regression' }, async ({ page }) => {
+    // الأداة اللي اتعدّلت بتظهر في المتجر بقيمتها الجديدة.
+    test('edited tool appears in the store with the new value', { tag: '@regression' }, async ({ page }) => {
       // نغيّر القيمة المميزة في صفحة التعديل ونحفظ.
       const second = storeMarker(tool, 'qae');
       await builder.saveStoreValue(tool, second.value);
       await expect(page).toHaveURL(new RegExp(`${paths.myTools}$`), { timeout: 60_000 });
       // المتوقع: القيمة الجديدة موجودة في الملف والقديمة اختفت.
-      await expect.poll(() => storeFile.scriptHas(second.needle), { timeout: 90_000, intervals: [3_000] }).toBe(true);
-      expect(await storeFile.scriptHas(first.needle)).toBe(false);
+      await waitForFile(second.needle, true);
+      await waitForFile(first.needle, false);
+      // المتوقع: لو الأداة بتترسم مع تحميل الصفحة، صفحة المتجر فيها القيمة الجديدة ومفيهاش القديمة.
+      if (tool.shownOnLoad) {
+        await storePage.open();
+        expect(await storePage.waitUntilContains(second.needle, 120)).toBe(true);
+        expect(await storePage.contains(first.needle)).toBe(false);
+      }
     });
 
-    // حذف الأداة بيشيل قيمتها من ملف الاستور.
-    test('deleted tool is removed from the store file', { tag: '@regression' }, async () => {
+    // الأداة اللي اتحذفت بتختفي من المتجر.
+    test('deleted tool disappears from the store', { tag: '@regression' }, async () => {
       // الأول نتأكد إن القيمة وصلت للملف.
-      await expect.poll(() => storeFile.scriptHas(first.needle), { timeout: 90_000, intervals: [3_000] }).toBe(true);
+      await waitForFile(first.needle, true);
       // نحذف الأداة من "أدواتي".
       await myTools.open();
       await myTools.deleteButton(name).click();
       await myTools.confirmDeleteButton.click();
       await expect(myTools.deleteDialog).toBeHidden({ timeout: 30_000 });
       // المتوقع: القيمة مبقتش موجودة في الملف.
-      await expect.poll(() => storeFile.scriptHas(first.needle), { timeout: 90_000, intervals: [3_000] }).toBe(false);
+      await waitForFile(first.needle, false);
+      // المتوقع: لو الأداة بتترسم مع تحميل الصفحة، صفحة المتجر مبقتش فيها القيمة (بنعمل reload لحد ما تختفي).
+      if (tool.shownOnLoad) {
+        await storePage.open();
+        expect(await storePage.waitUntilGone(first.needle, 120)).toBe(true);
+      }
     });
   });
 }

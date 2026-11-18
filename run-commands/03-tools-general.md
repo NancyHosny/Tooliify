@@ -34,6 +34,10 @@
 - [`npx playwright test modules/tools/my-tools/view.spec.ts --project=ui-merchant`](command:workbench.action.terminal.sendSequence?%7B%22text%22%3A%22npx%20playwright%20test%20modules%2Ftools%2Fmy-tools%2Fview.spec.ts%20--project%3Dui-merchant%22%7D)
 - [`npx playwright test modules/tools/my-tools/view.spec.ts --project=ui-merchant --headed`](command:workbench.action.terminal.sendSequence?%7B%22text%22%3A%22npx%20playwright%20test%20modules%2Ftools%2Fmy-tools%2Fview.spec.ts%20--project%3Dui-merchant%20--headed%22%7D)  ← مع فتح المتصفح (headed)
 
+**schedule-tab.spec.ts**
+- [`npx playwright test modules/tools/my-tools/schedule-tab.spec.ts --project=ui-merchant`](command:workbench.action.terminal.sendSequence?%7B%22text%22%3A%22npx%20playwright%20test%20modules%2Ftools%2Fmy-tools%2Fschedule-tab.spec.ts%20--project%3Dui-merchant%22%7D)
+- [`npx playwright test modules/tools/my-tools/schedule-tab.spec.ts --project=ui-merchant --headed`](command:workbench.action.terminal.sendSequence?%7B%22text%22%3A%22npx%20playwright%20test%20modules%2Ftools%2Fmy-tools%2Fschedule-tab.spec.ts%20--project%3Dui-merchant%20--headed%22%7D)  ← مع فتح المتصفح (headed)
+
 ## API الأدوات
 الفولدر كله:
 - [`npx playwright test modules/tools/api --project=api`](command:workbench.action.terminal.sendSequence?%7B%22text%22%3A%22npx%20playwright%20test%20modules%2Ftools%2Fapi%20--project%3Dapi%22%7D)

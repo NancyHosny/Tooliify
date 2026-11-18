@@ -72,6 +72,10 @@ modules/
   auth/                              Authentication module (login, forgot password, logout, access control)
   profile/                           Profile module (view data, phone, change password)
   tools/                             Tools module: one folder per tool (view, search, add, edit, delete) + catalog/ my-tools/ api/
+  scheduling/                        Scheduling module (list, one-tool popup, group panel, API) – see modules/scheduling/README.md
+  coupons/                           Coupons module (list, form, row actions, API) – see modules/coupons/README.md
+  dashboard/                         Dashboard module (page, statistics API, tracking API) – see modules/dashboard/README.md
+  storefront/                        Storefront module (store page, public store file, public API) – see modules/storefront/README.md
   shared/                            Bug capture fixture, terminal reporter, global setup
   <next-module>/                     Same layout: pages/ clients/ ui/ api/
 test-data/test-data.ts               ALL test data, paths and credentials (read from .env)
