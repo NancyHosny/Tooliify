@@ -1,10 +1,7 @@
-// نستورد test و expect من Playwright (الـ fixture اسمه "request" هو اللي بيبعت طلبات الـ API).
 import { test, expect } from '../../shared/bug-capture';
-// نستورد عميل الإحصائيات وعميل أدواتي والتوكن.
 import { StatisticsClient } from '../clients/StatisticsClient';
 import { MyToolsClient } from '../../tools/clients/MyToolsClient';
 import { getMerchantToken } from '../../shared/merchant-token';
-// نستورد بيانات التست.
 import { apiUrl, unknownId, notNumericId, fakeJwt, statisticsApi, invalidDateFilters } from '../../../test-data/test-data';
 
 // شكل أداة وكارت في رد لوحة التحكم.
@@ -39,19 +36,15 @@ test.describe('Statistics – API', () => {
 
   // الرد بيرجّع الكروت التلاتة وقايمة الأدوات وأكتر الأدوات والنشاط.
   test('dashboard returns the cards, tools, top tools and activity', { tag: '@smoke' }, async () => {
-    // ننده GET /merchant/statistics.
     const response = await statistics.dashboard();
-    // المتوقع: 200 ومفتاح النجاح.
     expect(response.status()).toBe(200);
     const body = await response.json();
     expect(body.key).toBe(statisticsApi.dashboardKey);
-    // المتوقع: الكروت التلاتة بالترتيب، وكل كارت فيه رقم ونسبة تغيير.
     expect(body.data.stats.map((item: { key: string }) => item.key)).toEqual(statisticsApi.cardKeys);
     for (const item of body.data.stats) {
       expect(typeof item.value).toBe('number');
       expect(typeof item.change).toBe('number');
     }
-    // المتوقع: باقي الأجزاء قوايم (والنشاط فيه يوم على الأقل).
     expect(Array.isArray(body.data.active_tools)).toBe(true);
     expect(Array.isArray(body.data.top_tools)).toBe(true);
     expect(body.data.activity.length).toBeGreaterThan(0);
@@ -59,55 +52,44 @@ test.describe('Statistics – API', () => {
 
   // الأرقام جوه الرد متناسقة مع بعض.
   test('dashboard numbers are consistent with each other', { tag: '@regression' }, async () => {
-    // نجيب الرد.
     const data = (await (await statistics.dashboard()).json()).data;
-    // المتوقع: كارت "الأدوات المفعلة" = عدد الأدوات في القايمة.
     expect(data.stats[0].value).toBe(data.active_tools.length);
     // المتوقع: كل أداة تفاعلاتها = المرور + النقرات.
     for (const tool of [...data.active_tools, ...data.top_tools] as Tool[]) {
       expect(tool.interactions).toBe(tool.views + tool.clicks);
     }
-    // المتوقع: "أكثر الأدوات" مش أكتر من 5 ومترتبة من الأكتر للأقل.
     const top = (data.top_tools as Tool[]).map((tool) => tool.interactions);
     expect(top.length).toBeLessThanOrEqual(statisticsApi.topLimit);
     expect(top).toEqual([...top].sort((a, b) => b - a));
-    // المتوقع: إجمالي النشاط = مجموع تفاعلات الأيام.
     const days = (data.activity as { interactions: number }[]).reduce((sum, day) => sum + day.interactions, 0);
     expect(data.activity_total).toBe(days);
   });
 
   // كارت "الأدوات المفعلة" بيساوي الأدوات المفعلة في أدواتي.
   test('active tools card equals the active tools of my tools', { tag: '@regression' }, async () => {
-    // نجيب الإحصائيات وأدواتي.
     const data = (await (await statistics.dashboard()).json()).data;
     const groups = (await (await myTools.listMyTools()).json()).data.tools as { instances: { status: string }[] }[];
     const active = groups.flatMap((group) => group.instances).filter((instance) => instance.status === 'active').length;
-    // المتوقع: نفس العدد.
     expect(data.stats[0].value).toBe(active);
   });
 
   // فلتر التاريخ بيرجّع كل يوم في الفترة.
   test('date range returns one activity entry for every day', { tag: '@regression' }, async () => {
-    // نطلب فترة قديمة (10 أيام).
     const { from, to, days } = statisticsApi.oldRange;
     const response = await statistics.dashboard({ from, to });
-    // المتوقع: 200 وعدد الأيام صح، وأول يوم وآخر يوم هما اللي طلبناهم.
     expect(response.status()).toBe(200);
     const data = (await response.json()).data;
     expect(data.activity).toHaveLength(days);
     expect(data.activity[0].date).toBe(from);
     expect(data.activity.at(-1).date).toBe(to);
-    // المتوقع: إجمالي النشاط = مجموع الأيام.
     const sum = (data.activity as { interactions: number }[]).reduce((total, day) => total + day.interactions, 0);
     expect(data.activity_total).toBe(sum);
   });
 
   // فترة يوم واحد مقبولة.
   test('a one-day range is accepted', { tag: '@regression' }, async () => {
-    // نطلب يوم واحد (البداية = النهاية).
     const { from } = statisticsApi.oldRange;
     const response = await statistics.dashboard({ from, to: from });
-    // المتوقع: 200 وسطر نشاط واحد.
     expect(response.status()).toBe(200);
     expect((await response.json()).data.activity).toHaveLength(1);
   });
@@ -116,7 +98,6 @@ test.describe('Statistics – API', () => {
   test('English language returns an English message', { tag: '@regression' }, async () => {
     // نطلب بالإنجليزي مع تاريخ غلط عشان نجيب رسالة.
     const response = await statistics.dashboard({ to: statisticsApi.oldRange.to }, 'en');
-    // المتوقع: 422 والرسالة من غير حروف عربي.
     expect(response.status()).toBe(422);
     expect((await response.json()).msg).not.toMatch(/[؀-ۿ]/);
   });
@@ -124,9 +105,7 @@ test.describe('Statistics – API', () => {
   // تستات التواريخ الغلط: كل فلتر لازم يتقفل بـ 422.
   for (const item of invalidDateFilters) {
     test(`dashboard rejects an invalid date filter: ${item.name}`, { tag: '@regression' }, async () => {
-      // نبعت الفلتر الغلط.
       const response = await statistics.dashboard(item.params);
-      // المتوقع: 422 ورسالة.
       expect(response.status()).toBe(422);
       expect((await response.json()).msg).toBeTruthy();
     });
@@ -136,9 +115,7 @@ test.describe('Statistics – API', () => {
 
   // إحصائيات أداة بتاعتي: مرور ونقرات.
   test('tool statistics return views and clicks', { tag: '@smoke' }, async () => {
-    // ننده GET /merchant/tools/my/{id}/statistics لأول أداة في أدواتي.
     const response = await statistics.tool(await firstToolId());
-    // المتوقع: 200 والكارتين "المرور" و"النقرات" بالترتيب.
     expect(response.status()).toBe(200);
     const body = await response.json();
     expect(body.key).toBe(statisticsApi.toolKey);
@@ -148,18 +125,14 @@ test.describe('Statistics – API', () => {
 
   // فلتر التاريخ شغال على الأداة الواحدة.
   test('tool statistics accept a date range', { tag: '@regression' }, async () => {
-    // نطلب الفترة القديمة.
     const response = await statistics.tool(await firstToolId(), { from: statisticsApi.oldRange.from, to: statisticsApi.oldRange.to });
-    // المتوقع: 200.
     expect(response.status()).toBe(200);
   });
 
   // التواريخ الغلط بتترفض في إحصائيات الأداة كمان.
   for (const item of invalidDateFilters) {
     test(`tool statistics reject an invalid date filter: ${item.name}`, { tag: '@regression' }, async () => {
-      // نبعت الفلتر الغلط.
       const response = await statistics.tool(await firstToolId(), item.params);
-      // المتوقع: 422.
       expect(response.status()).toBe(422);
     });
   }
@@ -176,7 +149,6 @@ test.describe('Statistics – API', () => {
 
   // أداة بتاعة تاجر تاني (id 1) مرفوضة.
   test('tool statistics of another merchant tool return 403', { tag: '@critical' }, async () => {
-    // المتوقع: 403 ومفتاح "الأداة مش بتاعتك".
     const response = await statistics.tool(1);
     expect(response.status()).toBe(403);
     expect((await response.json()).key).toBe(statisticsApi.notOwnedKey);
@@ -186,18 +158,14 @@ test.describe('Statistics – API', () => {
 
   // من غير توكن: 401.
   test('statistics endpoints without token return 401', { tag: '@critical' }, async ({ request }) => {
-    // عميل بتوكن فاضي.
     const noToken = new StatisticsClient(request, '');
-    // المتوقع: 401 في الـ endpointين.
     expect((await noToken.dashboard()).status()).toBe(401);
     expect((await noToken.tool(unknownId)).status()).toBe(401);
   });
 
   // توكن مزيّف: 401.
   test('statistics endpoints with a fake token return 401', { tag: '@regression' }, async ({ request }) => {
-    // عميل بتوكن مزيّف.
     const fake = new StatisticsClient(request, fakeJwt);
-    // المتوقع: 401.
     expect((await fake.dashboard()).status()).toBe(401);
   });
 });

@@ -1,50 +1,32 @@
-// نستورد أنواع Playwright.
 import { Page, Locator } from '@playwright/test';
-// نستورد بيانات التست (المسار والنصوص).
 import { paths, couponTexts } from '../../../test-data/test-data';
 
 // Page Object لصفحة "الكوبونات": قايمة بكل الكوبونات مع بحث وفلاتر،
 // وفي كل صف زراير نسخ الرمز والتعديل والحذف ومفتاح التفعيل/الإيقاف (بيفتح نافذة تأكيد).
 export class CouponsPage {
-  // التاب (الصفحة) بتاعة المتصفح.
   readonly page: Page;
-  // عنوان الصفحة "الكوبونات".
   readonly heading: Locator;
-  // نص "(N كوبون مضاف)" جنب العنوان.
   readonly countText: Locator;
-  // نص "اخر مزامنة للكوبونات مع سلة".
   readonly syncText: Locator;
-  // زرار "اضافة كوبون" (بيفتح صفحة كوبون جديد).
   readonly addButton: Locator;
-  // خانة البحث بالاسم أو الرمز.
   readonly searchInput: Locator;
-  // فلتر المصدر (الكل / يدوي - Toolify / تلقائي / سلة) وفلتر الحالة.
   readonly sourceFilter: Locator;
   readonly statusFilter: Locator;
-  // قايمة "العناصر في الصفحة" (select عادي).
   readonly pageSize: Locator;
-  // صف لكل كوبون (سطر grid واحد).
   readonly rows: Locator;
-  // رسالة "لا توجد كوبونات مطابقة" لما البحث مبيرجّعش حاجة.
   readonly emptyTitle: Locator;
-  // نافذة التأكيد (إيقاف الكوبون أو حذفه).
   readonly dialog: Locator;
 
-  // بنبني الـ Page Object.
   constructor(page: Page) {
-    // نحفظ التاب.
     this.page = page;
-    // العنوان: الـ h1 بتاع الصفحة.
     this.heading = page.getByRole('heading', { level: 1, name: couponTexts.pageTitle, exact: true });
     this.countText = page.getByText(/\(\d+ كوبون مضاف\)/);
     this.syncText = page.getByText(couponTexts.syncLabel);
     this.addButton = page.getByRole('button', { name: couponTexts.addButton });
     this.searchInput = page.getByPlaceholder(couponTexts.searchPlaceholder);
-    // الفلتران هما أول قايمتين combobox في الصفحة.
     this.sourceFilter = page.getByRole('combobox').nth(0);
     this.statusFilter = page.getByRole('combobox').nth(1);
     this.pageSize = page.locator('#tablePageSize');
-    // الصفوف: سطر grid جوه جسم الجدول.
     this.rows = page.locator('tbody div[style*="grid-template-columns"]');
     this.emptyTitle = page.getByText(couponTexts.emptyTitle);
     this.dialog = page.getByRole('dialog');
@@ -52,11 +34,8 @@ export class CouponsPage {
 
   // نفتح صفحة الكوبونات.
   async open() {
-    // نروح لـ BASE_URL + /ar/coupons.
     await this.page.goto(paths.coupons, { waitUntil: 'domcontentloaded' });
-    // نستنى العنوان.
     await this.heading.waitFor();
-    // نستنى لحد ما الصفوف أو الشاشة الفاضية تظهر (العنوان بيظهر قبل البيانات).
     await this.rows.first().or(this.emptyTitle).waitFor({ timeout: 30_000 });
   }
 

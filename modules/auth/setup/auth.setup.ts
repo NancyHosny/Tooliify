@@ -1,8 +1,5 @@
-// نستورد test (بنسميه "setup" هنا عشان غرضه يبقى واضح) و expect.
 import { test as setup, expect } from '@playwright/test';
-// نستورد الـ Page Object بتاع صفحة تسجيل الدخول.
 import { LoginPage } from '../pages/LoginPage';
-// نستورد بيانات التاجر الصحيحة (من ملف .env).
 import { validMerchant } from '../../../test-data/test-data';
 
 // الملف اللي بتتحفظ فيه جلسة المتصفح بعد تسجيل الدخول (cookies + local storage).

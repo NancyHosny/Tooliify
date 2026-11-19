@@ -1,9 +1,7 @@
-// نستورد test و expect (ومعاهم الالتقاط الأوتوماتيك للأخطاء).
 import { test, expect } from '../../shared/bug-capture';
-// نستورد الـ Page Object بتاع صفحة الأداة وأدوات الـ API المساعدة.
 import { ToolBuilderPage } from '../pages/ToolBuilderPage';
-import { createClients, addQaTool, deleteQaTools } from '../../scheduling/clients/qa-tools';
-// نستورد بيانات التست.
+import { createClients, addQaTool } from '../../scheduling/clients/qa-tools';
+import { deleteQaTools } from '../../shared/qa-tools';
 import { apiUrl, paths, scheduleTexts } from '../../../test-data/test-data';
 
 // تاب "الجدولة" جوه صفحة الأداة (/ar/my-tools/<slug>/<id>): نفس فكرة الجدولة بس من جوه الأداة نفسها.
@@ -33,7 +31,6 @@ test.describe('Tool page – schedule tab', () => {
 
   // التاب بيفتح والجدولة مقفولة.
   test('schedule tab opens with the schedule turned off', { tag: '@regression' }, async ({ page }) => {
-    // المتوقع: قسم التاب ظاهر ومكتوب فيه إن الجدولة غير مفعّلة.
     const panel = page.getByRole('tabpanel', { name: 'الجدولة' });
     await expect(panel).toBeVisible();
     await expect(panel.getByText(scheduleTexts.switchOff)).toBeVisible();
@@ -42,7 +39,6 @@ test.describe('Tool page – schedule tab', () => {
 
   // تفعيل المفتاح بيظهر خانات التاريخ والوقت.
   test('turning the schedule on shows the date and time fields', { tag: '@regression' }, async ({ page }) => {
-    // نفعّل المفتاح.
     const panel = page.getByRole('tabpanel', { name: 'الجدولة' });
     await panel.getByRole('switch').click();
     // المتوقع: عناوين الخانات الأربعة ظاهرة (بنبحث عن بداية النص لأن نفس الكلمات موجودة في رسايل التحقق).
@@ -53,12 +49,10 @@ test.describe('Tool page – schedule tab', () => {
 
   // خانة التاريخ بتفتح تقويم نختار منه يوم.
   test('start date field opens a calendar', { tag: '@regression' }, async ({ page }) => {
-    // نفعّل المفتاح ونضغط على خانة تاريخ البداية.
     const panel = page.getByRole('tabpanel', { name: 'الجدولة' });
     await panel.getByRole('switch').click();
     const startDate = panel.locator('[data-slot="popover-trigger"]').first();
     await startDate.click();
-    // المتوقع: التقويم اتفتح.
     await expect(startDate).toHaveAttribute('aria-expanded', 'true');
     await expect(page.getByRole('grid')).toBeVisible();
   });

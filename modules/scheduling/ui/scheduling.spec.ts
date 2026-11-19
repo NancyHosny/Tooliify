@@ -1,9 +1,7 @@
-// نستورد test و expect (ومعاهم الالتقاط الأوتوماتيك للأخطاء).
 import { test, expect } from '../../shared/bug-capture';
-// نستورد الـ Page Object بتاع صفحة الجدولة وأدوات الـ API المساعدة.
 import { SchedulingPage } from '../pages/SchedulingPage';
-import { createClients, addQaTool, deleteQaTools } from '../clients/qa-tools';
-// نستورد بيانات التست.
+import { createClients, addQaTool } from '../clients/qa-tools';
+import { deleteQaTools } from '../../shared/qa-tools';
 import { apiUrl, paths, messages, scheduleTexts, scheduleBody, validSchedule } from '../../../test-data/test-data';
 
 // تستات صفحة الجدولة (قايمة الأدوات). الصفحة بتعرض الأدوات اللي بتدعم الجدولة بس، فكل تست بيضيف أداة QA بالـ API ويحذفها بعد كده.
@@ -32,7 +30,6 @@ test.describe('Scheduling page – list', () => {
 
   // الصفحة بتعرض العنوان والعدد وخانة البحث وزرار جدولة المجموعة.
   test('page shows the title, the count, the search box and the group button', { tag: '@smoke' }, async () => {
-    // المتوقع: كل العناصر الأساسية ظاهرة.
     await expect(scheduling.heading).toBeVisible();
     await expect(scheduling.countText).toBeVisible();
     await expect(scheduling.searchInput).toBeVisible();
@@ -41,9 +38,7 @@ test.describe('Scheduling page – list', () => {
 
   // الأداة الجديدة بتظهر مفعّلة وغير مجدولة، ومفتاحها معطّل لحد ما تتجدول.
   test('new tool is shown as active and not scheduled', { tag: '@smoke' }, async () => {
-    // نجيب صف الأداة.
     const row = scheduling.row(tool.name);
-    // المتوقع: الصف ظاهر وفيه "مفعلة" و "غير مجدولة" وأيقونة الإعدادات وخانة الاختيار.
     await expect(row).toBeVisible();
     await expect(row.getByText(messages.toolActive, { exact: true })).toBeVisible();
     await expect(row.getByText(scheduleTexts.notScheduled)).toBeVisible();
@@ -55,34 +50,26 @@ test.describe('Scheduling page – list', () => {
 
   // العدد المكتوب في الصفحة بيساوي عدد الأدوات اللي الـ API بيرجّعها.
   test('count matches the number of tools in the API', { tag: '@regression' }, async () => {
-    // نقرا الإجمالي من الـ API.
     const body = await (await api.scheduling.listSchedules()).json();
-    // المتوقع: نفس الرقم في الصفحة.
     expect(await scheduling.addedCount()).toBe(body.data.pagination.total_items);
   });
 
   // البحث بالاسم بيلاقي الأداة.
   test('search by the tool name finds the tool', { tag: '@regression' }, async () => {
-    // نكتب اسم الأداة.
     await scheduling.search(tool.name);
-    // المتوقع: الأداة ظاهرة.
     await expect(scheduling.row(tool.name)).toBeVisible();
   });
 
   // البحث باسم غلط مبيرجّعش أي صف.
   test('search with a wrong name shows no tools', { tag: '@regression' }, async () => {
-    // نكتب اسم مش موجود.
     await scheduling.search(`${tool.name}-zzzqqq`);
-    // المتوقع: مفيش أي صف.
     await expect(scheduling.rows).toHaveCount(0);
   });
 
   // الأداة المجدولة بتظهر "مجدولة" وتواريخها.
   test('scheduled tool shows the scheduled status and its dates', { tag: '@smoke' }, async () => {
-    // نجدول الأداة بالـ API ونعمل reload للصفحة.
     await api.scheduling.setSchedule(tool.id, scheduleBody());
     await scheduling.open();
-    // المتوقع: الصف فيه "مجدولة" وتاريخ البداية والنهاية.
     const row = scheduling.row(tool.name);
     await expect(row.getByText(/مجدولة \(/)).toBeVisible();
     await expect(row).toContainText(validSchedule.shownStart);
@@ -91,13 +78,10 @@ test.describe('Scheduling page – list', () => {
 
   // حالة الجدولة في الصفحة بتطابق الحالة اللي الـ API بيرجّعها (فترة لسه مبدأتش = "غير نشطة").
   test('scheduled status in the page matches the API status', { tag: '@regression' }, async () => {
-    // نجدول الأداة بالـ API ونقرا الحالة منه.
     await api.scheduling.setSchedule(tool.id, scheduleBody());
     const rows = (await (await api.scheduling.listSchedules()).json()).data.rows as { id: number; schedule_status_label: string }[];
     const label = rows.find((row) => row.id === tool.id)!.schedule_status_label;
-    // نفتح الصفحة.
     await scheduling.open();
-    // المتوقع: الصفحة بتكتب نفس الحالة جنب "مجدولة".
     await expect(scheduling.row(tool.name).getByText(`${scheduleTexts.scheduled} (${label})`)).toBeVisible();
   });
 });
@@ -117,7 +101,6 @@ test.describe('Scheduling page – empty state', () => {
 
   // الشاشة الفاضية بتعرض الرسالة والتلميح وزرار الإضافة.
   test('empty state shows the message, the hint and the add button', { tag: '@regression' }, async () => {
-    // المتوقع: النصوص والزرار ظاهرين.
     await expect(scheduling.emptyTitle).toBeVisible();
     await expect(scheduling.emptyHint).toBeVisible();
     await expect(scheduling.addToolsButton).toBeVisible();
@@ -125,9 +108,7 @@ test.describe('Scheduling page – empty state', () => {
 
   // زرار "اضافة ادوات" بيفتح كتالوج الأدوات.
   test('"اضافة ادوات" opens the tools catalog', { tag: '@regression' }, async ({ page }) => {
-    // نضغط الزرار.
     await scheduling.addToolsButton.click();
-    // المتوقع: صفحة الكتالوج.
     await expect(page).toHaveURL(new RegExp(`${paths.tools}$`));
   });
 });
@@ -139,9 +120,7 @@ test.describe('Scheduling page – access', () => {
 
   // الزائر اللي مش عامل تسجيل دخول مينفعش يفتح الجدولة.
   test('scheduling is not accessible without login', { tag: '@regression' }, async ({ page }) => {
-    // نحاول نفتح الصفحة مباشرة.
     await page.goto(paths.scheduling, { waitUntil: 'networkidle' });
-    // المتوقع: تحويل لصفحة تسجيل الدخول، والصفحة هي عنوان الرجوع.
     await expect(page).toHaveURL(/\/auth\?.*callbackUrl=%2Far%2Fscheduling/, { timeout: 30_000 });
   });
 });

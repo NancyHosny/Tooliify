@@ -1,4 +1,3 @@
-// نستورد نوع Playwright الخاص بطلبات HTTP.
 import { APIRequestContext } from '@playwright/test';
 
 // مسارات الـ endpoints من ملف Toolifiy.JSON (تاج "Coupons").
@@ -12,12 +11,9 @@ const PATHS = {
 
 // عميل API للكوبونات: دالة بسيطة لكل endpoint.
 export class CouponsClient {
-  // كائن الطلبات (الـ baseURL هو API_URL).
   readonly request: APIRequestContext;
-  // الـ JWT بتاع التاجر اللي عامل تسجيل دخول.
   readonly token: string;
 
-  // نحفظ كائن الطلبات والتوكن.
   constructor(request: APIRequestContext, token: string) {
     this.request = request;
     this.token = token;
@@ -28,9 +24,8 @@ export class CouponsClient {
     return { Authorization: `Bearer ${this.token}`, 'Accept-Language': 'ar' };
   }
 
-  // GET /merchant/coupons/paginated – قايمة الكوبونات مع بحث وفلاتر.
-  // الـ API بيرجّع 15 كوبون في الصفحة افتراضيًا، فبنطلب 100 عشان ناخد القايمة كاملة في طلب واحد.
-  // "filters" فلاتر اختيارية بالشكل { 'filter[search]': 'اسم' }.
+  // GET /merchant/coupons/paginated – القايمة مع بحث وفلاتر اختيارية ({ 'filter[search]': 'اسم' }).
+  // بنطلب 100 لأن الافتراضي 15 كوبون بس.
   async list(filters: Record<string, string> = {}) {
     return this.request.get(PATHS.paginated, { params: { per_page: '100', ...filters }, headers: this.headers() });
   }

@@ -1,7 +1,6 @@
 // ترمنال VS Code مش بيوصّل الحروف العربية ببعض ومش بيعكس اتجاه الكلام من اليمين لليسار،
-// فالعربي بيظهر مقطّع ("ا ل ح ل س ة"). الملف ده بيصلّح النص للترمنال "بس" بخطوتين:
-// 1) كل حرف ياخد شكله المتصل (أول الكلمة / وسطها / آخرها)، 2) بنعكس ترتيب الكلمات العربية.
-// الملفات والسكرينشوتات بتفضل بالعربي العادي. ولو عايزة توقفي الإصلاح ده اكتبي ARABIC_TERMINAL=off في ملف .env.
+// فالعربي بيظهر مقطّع. الملف ده بيصلّح النص للترمنال "بس" (الملفات والسكرينشوتات تفضل عادية) بخطوتين:
+// 1) كل حرف ياخد شكله المتصل، 2) بنعكس ترتيب الكلمات. لإيقافه اكتبي ARABIC_TERMINAL=off في .env.
 
 // أشكال كل حرف بالترتيب: [منفصل، آخر الكلمة، أول الكلمة، وسط الكلمة].
 // الحروف اللي مبتتصلش بالحرف اللي بعدها (زي ا و د و ر) ليها شكلين بس.
@@ -36,7 +35,6 @@ function shape(word: string): string {
   for (let i = 0; i < letters.length; i++) {
     const current = letters[i];
     const forms = FORMS[current];
-    // لو الحرف مش حرف عربي معروف (زي "،" أو "؟") بنسيبه زي ما هو.
     if (!forms) {
       out += current;
       continue;
@@ -44,13 +42,11 @@ function shape(word: string): string {
     // هل الحرف اللي قبله بيتصل بالحرف الحالي؟ (الحروف اللي ليها 4 أشكال بس هي اللي بتتصل بالحرف اللي بعدها).
     const previous = FORMS[letters[i - 1]];
     const joinsPrevious = Boolean(previous && previous.length === 4);
-    // حالة "لا": حرفين (ل + ا) بيتحولوا لشكل واحد.
     if (current === 'ل' && LAM_ALEF[letters[i + 1]]) {
       out += LAM_ALEF[letters[i + 1]][joinsPrevious ? 1 : 0];
       i++;
       continue;
     }
-    // هل الحرف الحالي بيتصل بالحرف اللي بعده؟
     const next = FORMS[letters[i + 1]];
     const joinsNext = forms.length === 4 && Boolean(next && next.length >= 2);
     if (joinsPrevious && joinsNext) out += forms[3];

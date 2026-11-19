@@ -1,4 +1,3 @@
-// نستورد نوع Playwright الخاص بطلبات HTTP.
 import { APIRequestContext } from '@playwright/test';
 
 // مسارات الـ endpoints من ملف Toolifiy.JSON (التاجات "Tools" و "Categories").
@@ -9,12 +8,9 @@ const PATHS = {
 
 // عميل API لكتالوج الأدوات (endpoints للقراءة فقط).
 export class ToolsCatalogClient {
-  // كائن الطلبات (الـ baseURL هو API_URL).
   readonly request: APIRequestContext;
-  // الـ JWT بتاع التاجر اللي عامل تسجيل دخول.
   readonly token: string;
 
-  // نحفظ كائن الطلبات والتوكن.
   constructor(request: APIRequestContext, token: string) {
     this.request = request;
     this.token = token;

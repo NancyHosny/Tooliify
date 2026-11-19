@@ -1,8 +1,5 @@
-// نستورد أنواع Playwright (الصفحة والـ Locator).
 import { Page, Locator } from '@playwright/test';
-// نستورد انتظار حد الطلبات (نفس الحد اللي بيستخدمه عميل الـ API).
 import { waitForStatisticsSlot, sleep } from '../clients/rate-limit';
-// نستورد بيانات التست.
 import { paths, dashboardTexts } from '../../../test-data/test-data';
 
 // شكل أداة في رد الإحصائيات (من الـ schema اسمه ToolStatisticDashboardResource في الـ OpenAPI).
@@ -30,36 +27,25 @@ export type SubscriptionData = {
 // Page Object للوحة التحكم (الصفحة الرئيسية بعد الدخول): بانر الاشتراك، 3 كروت، الأدوات المفعلة،
 // أكثر الأدوات تفاعلًا، ورسم نشاط الأدوات.
 export class DashboardPage {
-  // التاب (الصفحة) بتاعة المتصفح.
   readonly page: Page;
-  // عنوان الصفحة "لوحة التحكم".
   readonly heading: Locator;
-  // زراير الشريط العلوي: الثيم واللغة، وزرار طي الشريط الجانبي.
   readonly themeButton: Locator;
   readonly languageButton: Locator;
   readonly collapseButton: Locator;
-  // رابط "عرض الكل" جنب الأدوات المفعلة.
   readonly showAllLink: Locator;
-  // عنوان قسم "الأدوات المفعلة" وعدد الأدوات اللي جنبه "(N أداة)".
   readonly activeSection: Locator;
   readonly activeCount: Locator;
-  // رسم "نشاط الأدوات" (الـ div اللي فيه الـ svg).
   readonly chart: Locator;
 
-  // بنبني الـ Page Object.
   constructor(page: Page) {
-    // نحفظ التاب.
     this.page = page;
-    // العنوان: أي heading اسمه "لوحة التحكم" (الأول في الصفحة).
     this.heading = page.getByRole('heading', { name: dashboardTexts.title, exact: true }).first();
-    // الأزرار: بنلاقيها بأسمائها.
     this.themeButton = page.getByRole('button', { name: dashboardTexts.themeButton });
     this.languageButton = page.getByRole('button', { name: dashboardTexts.languageButton });
     this.collapseButton = page.getByRole('button', { name: dashboardTexts.collapseButton });
     this.showAllLink = page.getByRole('link', { name: dashboardTexts.showAll });
     this.activeSection = page.getByRole('heading', { name: dashboardTexts.activeSection, exact: true });
     this.activeCount = page.getByText(/^\(\d+ أداة\)$/);
-    // الرسم: أقرب div فوق عنوان "نشاط الأدوات" فيه svg.
     this.chart = page.getByText(dashboardTexts.chartTitle, { exact: true }).locator('xpath=ancestor::div[.//*[name()="svg"]][1]');
   }
 
@@ -68,20 +54,16 @@ export class DashboardPage {
   async open(path: string = paths.dashboard) {
     // بنحاول لحد 3 مرات لو السيرفر رد 429 (حد الطلبات).
     for (let attempt = 0; attempt < 3; attempt++) {
-      // نستنى مكان فاضي في حد الطلبات.
       await waitForStatisticsSlot();
-      // نجهّز انتظار رد الإحصائيات ورد الاشتراك قبل ما نفتح الصفحة.
       const statistics = this.page.waitForResponse((r) => r.url().includes('/merchant/statistics') && r.request().method() === 'GET');
       const subscription = this.page.waitForResponse((r) => r.url().endsWith('/merchant/subscription'));
       await this.page.goto(path, { waitUntil: 'domcontentloaded' });
       const statisticsResponse = await statistics;
       const subscriptionResponse = await subscription;
-      // لو الحد اتعدّى نستنى دقيقة ونفتح تاني.
       if (statisticsResponse.status() === 429) {
         await sleep(60_000);
         continue;
       }
-      // نستنى العنوان وبعدين نرجّع الداتا.
       await this.heading.waitFor();
       return {
         statistics: (await statisticsResponse.json()).data as DashboardData,

@@ -52,9 +52,9 @@ Each store test types a unique value in one field of the builder (`storeField` o
 
 | Test | What it checks |
 |---|---|
-| added tool appears in the store | the value is in the public file after add, and on the store page itself (tools drawn on page load: `shownOnLoad`) |
-| edited tool appears in the store with the new value | the new value is in the file (and on the store page for `shownOnLoad` tools) and the old one is gone |
-| deleted tool disappears from the store | the value is gone from the file and from the store page |
+| added tool appears in my tools and then in the store | "أدواتي" shows the tool (active); then the value is in the public file and in the real store opened in the browser (page + the Tooliify script it loaded) |
+| edited tool shows the new value in my tools and in the store | the tool is still in "أدواتي" (active); the new value is in the file and in the opened store, the old one is gone |
+| deleted tool disappears from my tools and from the store | the tool leaves "أدواتي"; the value is gone from the file and from the opened store |
 
 Every tool now has a mapped field. Two tools use a number field (`storeKind: 'number'`): customer-reviews (`config.ratings_count`) and purchase-counter (`config.purchaseCount`). اشتري منتج keeps its message in a folded section ("الرسالة 1"), so its tool data has `storeSection` and the builder opens that section first.
 The name of the tool is not written in the file, so the unique value is the way to find it.

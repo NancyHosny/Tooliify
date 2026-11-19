@@ -1,11 +1,9 @@
-// نستورد test و expect من Playwright.
 import { test, expect } from '../../shared/bug-capture';
-// نستورد عميل Auth (عشان ناخد توكن) وعميل My Tools.
-import { AuthClient } from '../../auth/clients/AuthClient';
+import { getMerchantToken } from '../../shared/merchant-token';
+import { deleteQaTools } from '../../shared/qa-tools';
 import { MyToolsClient } from '../clients/MyToolsClient';
-// نستورد بيانات التست.
 import {
-  apiUrl, validMerchant, toolToAdd, newQaToolName, addToolBody, invalidAddToolBodies, unknownId, qaPrefix,
+  apiUrl, toolToAdd, newQaToolName, addToolBody, invalidAddToolBodies, unknownId,
 } from '../../../test-data/test-data';
 
 // مجموعة واحدة من قايمة "أدواتي" (من الـ schema اسمه MerchantToolInstancesResource في الـ OpenAPI).
@@ -16,48 +14,34 @@ test.describe('My tools – API', () => {
   // نتخطى كل التستات لو API_URL مش مكتوب في ملف .env.
   test.skip(!apiUrl, 'API_URL is not set in .env');
 
-  // العميل، بيتعمل من جديد لكل تست (بتوكن جديد).
+  // العميل، بيتعمل من جديد لكل تست (بتوكن التاجر المحفوظ).
   let myTools: MyToolsClient;
 
   // قبل كل تست: نسجّل دخول ونعمل العميل.
   test.beforeEach(async ({ request }) => {
-    const token = await new AuthClient(request).getToken(validMerchant.email, validMerchant.password);
+    const token = await getMerchantToken(request);
     myTools = new MyToolsClient(request, token);
   });
 
   // بعد كل تست: نحذف كل أداة اسمها بيبدأ ببادئة QA.
   test.afterEach(async () => {
-    // نقرا القايمة.
-    const groups = (await (await myTools.listMyTools()).json()).data.tools as Group[];
-    // نحذف نسخ QA بس.
-    for (const group of groups) {
-      for (const instance of group.instances) {
-        if (instance.display_name.startsWith(qaPrefix)) {
-          await myTools.deleteTool(instance.id);
-        }
-      }
-    }
+    await deleteQaTools(myTools);
   });
 
   // نضيف أداة، نلاقيها في القايمة، وبعدين نحذفها.
   test('add, list and delete a tool', { tag: '@smoke' }, async () => {
-    // نضيف الأداة باسم QA.
     const name = newQaToolName();
     const added = await myTools.addTool(toolToAdd.id, addToolBody(name));
-    // المتوقع: 200 ومفتاح النجاح.
     expect(added.status()).toBe(200);
     const addedBody = await added.json();
     expect(addedBody.key).toBe('tool_configration_saved');
     expect(addedBody.data.name).toBe(name);
     const id = addedBody.data.id as number;
-    // المتوقع: القايمة فيها الأداة الجديدة مفعّلة.
     const groups = (await (await myTools.listMyTools()).json()).data.tools as Group[];
     const instance = groups.flatMap((g) => g.instances).find((i) => i.id === id);
     expect(instance?.display_name).toBe(name);
     expect(instance?.status).toBe('active');
-    // نحذفها.
     const deleted = await myTools.deleteTool(id);
-    // المتوقع: 200 ومفتاح النجاح، والأداة مبقتش في القايمة.
     expect(deleted.status()).toBe(200);
     expect((await deleted.json()).key).toBe('tool_deleted');
     const after = (await (await myTools.listMyTools()).json()).data.tools as Group[];
@@ -66,12 +50,9 @@ test.describe('My tools – API', () => {
 
   // GET /tools/my/{id} بيرجّع الأداة المتضافة.
   test('get one added tool', { tag: '@regression' }, async () => {
-    // نضيف أداة.
     const name = newQaToolName();
     const id = (await (await myTools.addTool(toolToAdd.id, addToolBody(name))).json()).data.id as number;
-    // ننده GET /tools/my/{id}.
     const response = await myTools.getMyTool(id);
-    // المتوقع: 200 ونفس الأداة.
     expect(response.status()).toBe(200);
     const body = await response.json();
     expect(body.key).toBe('merchant_tool_success');
@@ -99,18 +80,14 @@ test.describe('My tools – API', () => {
 
   // حذف نفس الأداة مرتين: الطلب التاني بيترفض.
   test('delete twice is refused the second time', { tag: '@regression' }, async () => {
-    // نضيف ونحذف مرة.
     const id = (await (await myTools.addTool(toolToAdd.id, addToolBody(newQaToolName()))).json()).data.id as number;
     expect((await myTools.deleteTool(id)).status()).toBe(200);
-    // المتوقع: الحذف التاني بيترفض.
     expect([403, 404]).toContain((await myTools.deleteTool(id)).status());
   });
 
   // كل الـ endpoints محتاجة توكن.
   test('my tools endpoints without token return 401', { tag: '@critical' }, async ({ request }) => {
-    // عميل بتوكن فاضي.
     const noToken = new MyToolsClient(request, '');
-    // المتوقع: 401 في كل الـ endpoints.
     expect((await noToken.listMyTools()).status()).toBe(401);
     expect((await noToken.getMyTool(1)).status()).toBe(401);
     expect((await noToken.addTool(toolToAdd.id, addToolBody(newQaToolName()))).status()).toBe(401);

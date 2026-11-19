@@ -1,4 +1,3 @@
-// نستورد نوع Playwright الخاص بطلبات HTTP.
 import { APIRequestContext } from '@playwright/test';
 
 // مسارات الـ endpoints اللي المتجر (مش لوحة التحكم) بينده عليها. من ملف Toolifiy.JSON.
@@ -15,10 +14,8 @@ const HEADERS = { Accept: 'application/json' };
 
 // عميل API للمتجر: دالة بسيطة لكل endpoint.
 export class StorefrontClient {
-  // كائن الطلبات (الـ baseURL هو API_URL).
   readonly request: APIRequestContext;
 
-  // نحفظ كائن الطلبات.
   constructor(request: APIRequestContext) {
     this.request = request;
   }

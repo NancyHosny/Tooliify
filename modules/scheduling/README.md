@@ -7,7 +7,7 @@ Page: `/ar/scheduling`. API: tag "Tool Scheduling" (3 endpoints).
 ```
 modules/scheduling/
   clients/SchedulingClient.ts   one method per endpoint (list, set one, set group)
-  clients/qa-tools.ts           adds / deletes the QA tools through the API (login, addQaTool, deleteQaTools)
+  clients/qa-tools.ts           clients bundle + addQaTool (QA tool added through the API; deleting is shared/qa-tools.ts)
   pages/SchedulingPage.ts       the page: rows, search, group panel, calendar helper
   pages/ScheduleModal.ts        the "اعدادات الجدولة" popup of one tool
   ui/scheduling.spec.ts         the list: view, count, search, scheduled status, empty state, access

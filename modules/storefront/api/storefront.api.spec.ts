@@ -1,10 +1,8 @@
-// نستورد test و expect من Playwright (الـ fixture اسمه "request" هو اللي بيبعت طلبات الـ API).
 import fs from 'node:fs';
 import { test, expect } from '../../shared/bug-capture';
-// نستورد أدوات QA المساعدة.
-import { createStoreClients, addMarkedCookiesTool, addQaReviewsTool, deleteQaTools } from '../clients/qa-store-tools';
+import { createStoreClients, addMarkedCookiesTool, addQaReviewsTool } from '../clients/qa-store-tools';
+import { deleteQaTools } from '../../shared/qa-tools';
 import { sleep } from '../../dashboard/clients/rate-limit';
-// نستورد بيانات التست.
 import {
   apiUrl, unknownId, trackBody, trackingEvents, invalidTrackingEvents, validReview, invalidReviews,
   reviewImage, htmlComment, storefrontApi,
@@ -38,9 +36,7 @@ test.describe('Storefront – API', () => {
   // كل حدث من الأحداث الخمسة بيتقبل.
   for (const event of trackingEvents) {
     test(`tracking accepts the event: ${event}`, { tag: '@regression' }, async () => {
-      // نبعت الحدث.
       const response = await clients.storefront.trackOne(cookies.id, { event });
-      // المتوقع: 202 (اتقبل للمعالجة).
       expect(response.status()).toBe(202);
     });
   }
@@ -48,7 +44,6 @@ test.describe('Storefront – API', () => {
   // أحداث غلط.
   for (const item of invalidTrackingEvents) {
     test(`tracking rejects an invalid event: ${item.name}`, { tag: '@regression' }, async () => {
-      // المتوقع: 422.
       expect((await clients.storefront.trackOne(cookies.id, item.body)).status()).toBe(422);
     });
   }
@@ -62,16 +57,13 @@ test.describe('Storefront – API', () => {
 
   // تقييم صحيح بيتقبل وبيظهر في إعدادات الأداة.
   test('a valid review is stored and shown in the tool settings', { tag: '@smoke' }, async () => {
-    // نبعت تقييم صحيح.
     const response = await clients.storefront.submitReview({ merchant_tool_id: String(reviews.id), ...validReview });
-    // المتوقع: 201 ومفتاح النجاح وبيانات التقييم.
     expect(response.status()).toBe(201);
     const body = await response.json();
     expect(body.key).toBe(storefrontApi.reviewKey);
     expect(body.data.name).toBe(validReview.name);
     expect(body.data.rating).toBe(Number(validReview.rating));
     expect(body.data.comment).toBe(validReview.comment);
-    // المتوقع: التقييم موجود في إعدادات الأداة.
     const config = (await (await clients.myTools.getConfigurations(reviews.id)).json()).data.config;
     expect(config.customer_reviews.some((item: { comment: string }) => item.comment === validReview.comment)).toBe(true);
   });
@@ -80,33 +72,27 @@ test.describe('Storefront – API', () => {
   test('a review with an image is stored with the image address', { tag: '@regression' }, async () => {
     // رفع الصورة على التخزين الخارجي بطيء (ممكن ياخد أكتر من نص دقيقة).
     test.setTimeout(150_000);
-    // نبعت تقييم معاه صورة.
     const image = { name: reviewImage.name, mimeType: reviewImage.mimeType, buffer: fs.readFileSync(reviewImage.file) };
     const response = await clients.storefront.submitReview({ merchant_tool_id: String(reviews.id), ...validReview, image });
-    // المتوقع: 201 وعنوان الصورة.
     expect(response.status()).toBe(201);
     expect((await response.json()).data.image).toMatch(/^https:\/\//);
   });
 
   // ملف مش صورة بيترفض.
   test('a review with a file that is not an image is rejected', { tag: '@regression' }, async () => {
-    // نبعت ملف نصي كأنه صورة.
     const image = { name: 'qa.txt', mimeType: 'text/plain', buffer: Buffer.from('not an image') };
     const response = await clients.storefront.submitReview({ merchant_tool_id: String(reviews.id), ...validReview, image });
-    // المتوقع: 422.
     expect(response.status()).toBe(422);
   });
 
   // تقييمات غلط: كل واحد بنبدّل فيه حقل واحد.
   for (const item of invalidReviews) {
     test(`a review is rejected: ${item.name}`, { tag: '@regression' }, async () => {
-      // نبني التقييم الصحيح ونبدّل الحقل (null = نشيله).
       const fields: Record<string, string> = { merchant_tool_id: String(reviews.id), ...validReview };
       for (const [key, value] of Object.entries(item.change)) {
         if (value === null) delete fields[key];
         else fields[key] = value;
       }
-      // المتوقع: 422 ورسالة.
       const response = await clients.storefront.submitReview(fields);
       expect(response.status()).toBe(422);
       expect((await response.json()).msg).toBeTruthy();
@@ -115,9 +101,7 @@ test.describe('Storefront – API', () => {
 
   // كود HTML في التعليق: السيرفر لازم ينضّفه أو يرفضه، مش يخزنه زي ما هو (التعليق بيتعرض لزوار المتجر).
   test('a review comment with HTML code is not stored as it is', { tag: '@security' }, async () => {
-    // نبعت تعليق فيه وسم img بحدث onerror.
     const response = await clients.storefront.submitReview({ merchant_tool_id: String(reviews.id), ...validReview, comment: htmlComment });
-    // المتوقع: إما اترفض، أو اتخزن من غير الكود.
     if (response.status() === 201) expect((await response.json()).data.comment).not.toContain('onerror');
     else expect(response.status()).toBe(422);
   });
@@ -143,7 +127,6 @@ test.describe('Storefront – API', () => {
 
   // أداة مش من أدوات الكوبونات.
   test('automatic coupon for a tool that is not a coupon tool is rejected', { tag: '@regression' }, async () => {
-    // أداة الكوكيز مش بتصدر كوبونات.
     const response = await clients.storefront.issueAutomaticCoupon({ merchant_tool_id: cookies.id, visitor_key: 'qa-visitor' });
     expect(response.status(), await response.text()).toBe(422);
   });
@@ -170,11 +153,9 @@ test.describe('Storefront – API with a tool of its own', () => {
 
   // النقرة بتزوّد النقرات، والمرور بيزوّد المرور (على أداة جديدة عشان الأرقام تبدأ من صفر).
   test('a click and a view reach the tool statistics', { tag: '@regression' }, async () => {
-    // نضيف أداة جديدة ونسجّل نقرة ومرور.
     const tool = await addMarkedCookiesTool(clients.myTools);
     await clients.storefront.trackOne(tool.id, { event: 'click' });
     await clients.storefront.trackOne(tool.id, { event: 'view' });
-    // نستنى السيرفر يعالجهم، وبعدين نسأل كل 10 ثواني لحد دقيقة.
     await sleep(10_000);
     let values: Record<string, number> = {};
     for (let attempt = 0; attempt < 6; attempt++) {
@@ -183,7 +164,6 @@ test.describe('Storefront – API with a tool of its own', () => {
       if (values.clicks === 1 && values.views === 1) break;
       await sleep(10_000);
     }
-    // المتوقع: نقرة واحدة ومرور واحد.
     expect(values.clicks).toBe(1);
     expect(values.views).toBe(1);
   });
@@ -192,26 +172,20 @@ test.describe('Storefront – API with a tool of its own', () => {
 
   // الأداة الموقوفة مبتستقبلش حاجة من المتجر (404 في كل الـ endpoints).
   test('a stopped tool rejects tracking of one event', { tag: '@regression' }, async () => {
-    // نوقف أداة جديدة.
     const tool = await addMarkedCookiesTool(clients.myTools);
     await clients.myTools.toggleTool(tool.id);
-    // المتوقع: 404.
     expect((await clients.storefront.trackOne(tool.id, { event: 'view' })).status()).toBe(404);
   });
 
   test('a stopped tool rejects tracking of several events', { tag: '@regression' }, async () => {
-    // نوقف أداة جديدة.
     const tool = await addMarkedCookiesTool(clients.myTools);
     await clients.myTools.toggleTool(tool.id);
-    // المتوقع: 404.
     expect((await clients.statistics.track(trackBody(tool.id))).status()).toBe(404);
   });
 
   test('a stopped tool rejects reviews', { tag: '@regression' }, async () => {
-    // نوقف أداة آراء جديدة.
     const tool = await addQaReviewsTool(clients.myTools);
     await clients.myTools.toggleTool(tool.id);
-    // المتوقع: 404 ومفتاح "الأداة مش مضافة أو موقوفة".
     const response = await clients.storefront.submitReview({ merchant_tool_id: String(tool.id), ...validReview });
     expect(response.status()).toBe(404);
     expect((await response.json()).key).toBe(storefrontApi.toolNotAddedKey);

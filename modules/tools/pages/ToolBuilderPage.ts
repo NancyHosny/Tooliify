@@ -1,40 +1,27 @@
-// نستورد أنواع Playwright (الصفحة والـ Locator).
 import { Page, Locator } from '@playwright/test';
-// نستورد بيانات التست (المسارات، بيانات الأداة، صورة التست، الكوبون).
 import { paths, ToolData, qaImagePath, coupon } from '../../../test-data/test-data';
 
 // Page Object لصفحة تخصيص الأداة "/ar/tools/<slug>" (بتتفتح بزرار "إضافة الأداة" من الكتالوج).
-// حفظ النموذج هنا هو اللي "بيضيف" الأداة لصفحة "أدواتي" (SRS 10.9).
-// صفحة تعديل أداة متضافة ("/ar/my-tools/<slug>/<id>") فيها نفس الحقول ونفس الأزرار.
+// حفظ النموذج هنا هو اللي "بيضيف" الأداة لـ "أدواتي" (SRS 10.9).
+// صفحة تعديل أداة متضافة ("/ar/my-tools/<slug>/<id>") فيها نفس الحقول والأزرار.
 export class ToolBuilderPage {
-  // التاب (الصفحة) بتاعة المتصفح.
   readonly page: Page;
-  // حقل "اسم الاداة".
   readonly nameInput: Locator;
-  // حقل الرابط (موجود في أدوات زي فيسبوك بس).
   readonly linkInput: Locator;
-  // زرار "حفظ التعديلات" (بيحفظ وبيضيف الأداة).
   readonly saveButton: Locator;
-  // زرار "رجوع" (بيرجع للكتالوج ومبيحفظش حاجة).
   readonly backButton: Locator;
 
-  // بنبني الـ Page Object.
   constructor(page: Page) {
-    // نحفظ التاب.
     this.page = page;
-    // الحقول: بنلاقيها بالـ name attribute بتاعها في الصفحة الحقيقية.
     this.nameInput = page.locator('input[name="name"]');
     this.linkInput = page.locator('input[name="config.url"]');
-    // الأزرار: بنلاقيها بأسمائها العربي.
     this.saveButton = page.getByRole('button', { name: 'حفظ التعديلات' });
     this.backButton = page.getByRole('button', { name: 'رجوع' });
   }
 
   // نفتح صفحة تخصيص أداة معينة مباشرة من الـ slug بتاعها.
   async open(slug: string) {
-    // نروح لـ BASE_URL + /ar/tools/<slug>.
     await this.page.goto(`${paths.tools}/${slug}`, { waitUntil: 'domcontentloaded' });
-    // نستنى لحد ما النموذج يجهز.
     await this.nameInput.waitFor();
   }
 
@@ -45,11 +32,8 @@ export class ToolBuilderPage {
 
   // نكتب اسم (ورابط لو الأداة ليها رابط) ونضغط حفظ.
   async saveWithName(name: string, link?: string) {
-    // نبدّل الاسم الافتراضي.
     await this.nameInput.fill(name);
-    // نكتب الرابط.
     if (link !== undefined) await this.linkInput.fill(link);
-    // نضغط حفظ.
     await this.saveButton.click();
   }
 
@@ -65,20 +49,17 @@ export class ToolBuilderPage {
 
   // بنختار كوبون الخصم في كل قوايم الكوبونات في الـ builder (بعض الأدوات فيها أكتر من قايمة، في تابات أو أقسام مطوية مختلفة).
   async chooseCoupon() {
-    // نعدّي على كل تابات النموذج.
     const tabs = this.page.getByRole('tab');
     for (let i = 0; i < (await tabs.count()); i++) {
       await tabs.nth(i).click();
       // الأقسام المطوية في التاب (مثلًا "مكافأة المرحلة الثانية"). لما نفتح قسم الباقي بيتقفل.
       const sections = this.page.getByRole('tabpanel').locator('button[aria-expanded]:not([role="combobox"])');
       const total = await sections.count();
-      // تاب من غير أقسام: نختار الكوبونات الظاهرة فيه على طول.
       if (total === 0) await this.chooseVisibleCoupons();
       // تاب فيه أقسام: نفتح كل قسم وننتقي الكوبون بتاعه قبل ما نفتح القسم اللي بعده.
       for (let s = 0; s < total; s++) {
         if ((await sections.nth(s).getAttribute('aria-expanded')) === 'false') {
           await sections.nth(s).click();
-          // نستنى حركة فتح القسم تخلص.
           await this.page.waitForTimeout(500);
         }
         // القايمة الأولى بس: قوايم الأقسام التانية (المطوية) مش قابلة للاستخدام لسه.
@@ -89,7 +70,6 @@ export class ToolBuilderPage {
         }
       }
     }
-    // نرجع للتاب الأول (اللي فيه زرار الحفظ كمان).
     await tabs.first().click();
   }
 
@@ -103,14 +83,12 @@ export class ToolBuilderPage {
   async fillStoreField(tool: ToolData, value: string) {
     const field = this.page.locator(`[name="${tool.storeField}"]`).first();
     const tabs = this.page.getByRole('tab');
-    // بعض الأدوات بتحط الحقل في قسم مطوي بيتفتح بالضغط على عنوانه.
     if (tool.storeSection && !(await field.isVisible())) {
       await this.page.getByText(tool.storeSection, { exact: true }).first().click();
       await field.waitFor();
     }
     for (let i = 0; !(await field.isVisible()) && i < (await tabs.count()); i++) {
       await tabs.nth(i).click();
-      // نفتح الأقسام المطوية في التاب واحد واحد لحد ما الحقل يظهر.
       const folded = this.page.getByRole('tabpanel').locator('button[aria-expanded="false"]:not([role="combobox"])');
       for (let j = 0; !(await field.isVisible()) && j < (await folded.count()); j++) {
         await folded.nth(j).click();
@@ -124,7 +102,6 @@ export class ToolBuilderPage {
   async uploadImages() {
     const boxes = this.page.locator('input[type="file"]');
     for (let i = 0; i < (await boxes.count()); i++) await boxes.nth(i).setInputFiles(qaImagePath);
-    // نستنى الرفع يخلص.
     await this.page.waitForTimeout(3000);
   }
 
@@ -147,18 +124,15 @@ export class ToolBuilderPage {
 
   // بنضيف مجموعة منتجات واحدة: منتج أساسي ومنتج مرتبط، الاتنين من منتجات المتجر.
   async addProductGroup() {
-    // نموذج المجموعة موجود في التاب الأول.
     await this.page.getByRole('tab').first().click();
     await this.page.getByRole('button', { name: 'إضافة مجموعة' }).first().click();
     const lists = this.page.getByRole('combobox');
-    // المنتج الأساسي: أول منتج.
     await lists.nth(0).click();
     await this.page.getByRole('option').first().click();
     // المنتج المرتبط: أول منتج مش معطّل (المنتج الأساسي بيظهر كـ "مستخدم بالفعل").
     await lists.nth(1).click();
     await this.page.locator('[role="option"]:not([aria-disabled="true"])').first().click();
     await this.page.keyboard.press('Escape');
-    // نضيف المجموعة لقايمة المجموعات.
     await this.page.getByRole('button', { name: 'إضافة إلى المجموعات' }).click();
   }
 
@@ -185,16 +159,13 @@ export class ToolBuilderPage {
     // أدوات الرابط والهاتف: حقل الرابط بيشيل القيمة المميزة (أو الرابط العادي).
     const link = storeValue && this.usesLinkField(tool) ? storeValue : tool.link;
     if (link !== undefined) await this.linkInput.fill(link);
-    // الأدوات اللي محتاجة صورة أو روابط تواصل.
     if (tool.image) await this.uploadImages();
     if (tool.socialLinks) await this.fillSocialLinks(tool.socialLinks);
-    // باقي الأدوات: القيمة المميزة بتتكتب في حقلها النصي.
     if (storeValue && !this.usesLinkField(tool)) await this.fillStoreField(tool, storeValue);
     // أدوات المنتجات: لازم مجموعة منتجات واحدة.
     if (tool.products) await this.addProductGroup();
     // الأدوات اللي بتشارك مكانها الافتراضي مع أداة حقيقية على الحساب بننقلها لمكان تاني.
     if (tool.position) await this.choosePosition(tool.position);
-    // نضغط حفظ.
     await this.saveButton.click();
   }
 
@@ -208,20 +179,13 @@ export class ToolBuilderPage {
   // نضيف أداة بالطريقة العادية ونستنى لحد ما تتحفظ (الصفحة بتنتقل لـ /ar/my-tools/<slug>/<id>).
   // الحفظ بطيء على staging (لحد حوالي 25 ثانية)، فالانتظار طويل.
   async addAndWait(tool: ToolData, name: string, storeValue?: string) {
-    // نفتح الـ builder ونملا ونحفظ.
     await this.open(tool.slug);
-    // بنسجّل لو الصفحة بعتت طلب POST للسيرفر (الحفظ).
-    let sent = false;
-    this.page.on('request', (request) => {
-      if (request.method() === 'POST') sent = true;
-    });
     await this.saveTool(tool, name, storeValue);
-    // ساعات ضغطة "حفظ" مبتبعتش أي طلب للسيرفر (بتحصل مرة من كل كام تشغيل): لو مفيش طلب اتبعت بعد 5 ثواني نضغط تاني.
-    await this.page.waitForTimeout(5000);
-    if (!sent && !/\/\d+$/.test(this.page.url())) await this.saveButton.click();
-    // نستنى صفحة تعديل الأداة الجديدة.
-    await this.page.waitForURL(new RegExp(`${paths.myTools}/${tool.slug}/\\d+$`), { timeout: 60_000 });
-    // نستنى لحد ما نموذجها يجهز.
+    // الحفظ بيبطّأ على staging أحيانًا (الزرار بيفضل "حفظ التعديلات..." أكتر من دقيقة)، فبنستنى لحد 3 دقايق وبنطبع الوقت لو زاد عن 40 ثانية.
+    const startedAt = Date.now();
+    await this.page.waitForURL(new RegExp(`${paths.myTools}/${tool.slug}/\\d+$`), { timeout: 180_000 });
+    const seconds = Math.round((Date.now() - startedAt) / 1000);
+    if (seconds > 40) console.log(`SLOW SAVE: ${tool.slug} took ${seconds}s`);
     await this.nameInput.waitFor();
   }
 }

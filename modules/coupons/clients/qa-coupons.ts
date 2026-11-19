@@ -1,9 +1,6 @@
-// نستورد نوع Playwright الخاص بطلبات HTTP.
 import { APIRequestContext } from '@playwright/test';
-// نستورد توكن التاجر (بيتجاب مرة واحدة) وعميل الكوبونات.
 import { getMerchantToken } from '../../shared/merchant-token';
 import { CouponsClient } from './CouponsClient';
-// نستورد بيانات التست.
 import { couponBody, qaPrefix } from '../../../test-data/test-data';
 
 // الكوبونات بتتعمل على متجرك الحقيقي (سلة)، فكل تست بيعمل كوبون QA بالـ API ويحذفه بعد كده.

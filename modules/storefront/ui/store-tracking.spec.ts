@@ -1,11 +1,9 @@
-// نستورد test و expect (ومعاهم الالتقاط الأوتوماتيك للأخطاء).
 import { test, expect } from '../../shared/bug-capture';
-// نستورد صفحة المتجر وأدوات QA المساعدة.
 import { StorePage } from '../../tools/pages/StorePage';
 import { StoreClient } from '../../tools/clients/StoreClient';
-import { createStoreClients, addMarkedCookiesTool, deleteQaTools } from '../clients/qa-store-tools';
+import { createStoreClients, addMarkedCookiesTool } from '../clients/qa-store-tools';
+import { deleteQaTools } from '../../shared/qa-tools';
 import { sleep } from '../../dashboard/clients/rate-limit';
-// نستورد بيانات التست.
 import { apiUrl, storeTexts, storeWait } from '../../../test-data/test-data';
 
 // زائر المتجر بيعدّي بالماوس على الأداة وبيضغط عليها، وسكريبت Tooliify بيبعت الأرقام دي للسيرفر (POST /tracking/events)
@@ -34,14 +32,12 @@ test.describe('Storefront – visits and clicks are tracked', () => {
   });
 
   // مرور الزائر على الأداة بالماوس بيتبعت للسيرفر (كمرور).
-  // ملحوظة: فتح الصفحة لوحده مبيتبعتش حاجة، المرور بيتسجّل لما الزائر يعدّي بالماوس على الأداة.
-  // بنستنى رد السيرفر (مش بس إرسال الطلب)، عشان التست ميقفلش الصفحة قبل ما الطلب يوصل.
+  // ملحوظة: فتح الصفحة لوحده مبيبعتش حاجة، المرور بيتسجّل لما الزائر يعدّي بالماوس على الأداة.
+  // بنستنى رد السيرفر عشان التست ميقفلش الصفحة قبل ما الطلب يوصل.
   test('hovering over the tool sends a view', { tag: '@smoke' }, async ({ page }) => {
-    // نفتح المتجر ونعدّي بالماوس على زرار الأداة، ونستنى رد طلب التسجيل اللي فيه id الأداة.
     await new StorePage(page).open();
     const answered = page.waitForResponse((response) => response.url().includes('/tracking/events') && (response.request().postData() ?? '').includes(`"merchant_tool_id":${tool.id}`), { timeout: storeWait.pageSeconds * 1000 });
     await page.getByRole('button', { name: storeTexts.accept }).first().hover();
-    // المتوقع: السيرفر قبل الطلب وفيه "hovers" (المرور).
     const response = await answered;
     expect(response.status()).toBe(202);
     expect(JSON.parse(response.request().postData()!).interactions[0].hovers).toBeGreaterThanOrEqual(1);
@@ -49,11 +45,9 @@ test.describe('Storefront – visits and clicks are tracked', () => {
 
   // نقرة الزائر على زرار الأداة بتتبعت للسيرفر.
   test('clicking the tool button sends a click', { tag: '@regression' }, async ({ page }) => {
-    // نفتح المتجر ونضغط "قبول" في شريط الكوكيز، ونستنى رد طلب التسجيل اللي فيه نقرة.
     await new StorePage(page).open();
     const answered = page.waitForResponse((response) => response.url().includes('/tracking/events') && /"clicks":[1-9]/.test(response.request().postData() ?? '') && (response.request().postData() ?? '').includes(`"merchant_tool_id":${tool.id}`), { timeout: storeWait.pageSeconds * 1000 });
     await page.getByRole('button', { name: storeTexts.accept }).first().click();
-    // المتوقع: السيرفر قبل الطلب.
     expect((await answered).status()).toBe(202);
   });
 
@@ -67,7 +61,6 @@ test.describe('Storefront – visits and clicks are tracked', () => {
       if (values.views >= 1 && values.clicks >= 1) break;
       await sleep(10_000);
     }
-    // المتوقع: في مرور ونقرة على الأقل.
     expect(values.views).toBeGreaterThanOrEqual(1);
     expect(values.clicks).toBeGreaterThanOrEqual(1);
   });

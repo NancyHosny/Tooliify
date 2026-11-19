@@ -1,4 +1,3 @@
-// نستورد نوع Playwright الخاص بطلبات HTTP.
 import { APIRequestContext } from '@playwright/test';
 
 // مسارات الـ endpoints من ملف Toolifiy.JSON (تاج "Tool Scheduling").
@@ -10,12 +9,9 @@ const PATHS = {
 
 // عميل API للجدولة: دالة بسيطة لكل endpoint.
 export class SchedulingClient {
-  // كائن الطلبات (الـ baseURL هو API_URL).
   readonly request: APIRequestContext;
-  // الـ JWT بتاع التاجر اللي عامل تسجيل دخول.
   readonly token: string;
 
-  // نحفظ كائن الطلبات والتوكن.
   constructor(request: APIRequestContext, token: string) {
     this.request = request;
     this.token = token;
@@ -26,9 +22,8 @@ export class SchedulingClient {
     return { Authorization: `Bearer ${this.token}`, 'Accept-Language': 'ar' };
   }
 
-  // GET /merchant/tools/my/schedules – صف لكل أداة متضافة (مع حالة الجدولة).
-  // الـ API بيرجّع 6 صفوف في الصفحة افتراضيًا، فبنطلب 100 عشان ناخد القايمة كاملة في طلب واحد.
-  // "filters" فلاتر اختيارية بالشكل { 'filter[search]': 'اسم' }.
+  // GET /merchant/tools/my/schedules – صف لكل أداة متضافة (مع حالة الجدولة)، وفلاتر اختيارية ({ 'filter[search]': 'اسم' }).
+  // بنطلب 100 لأن الافتراضي 6 صفوف بس.
   async listSchedules(filters: Record<string, string> = {}) {
     return this.request.get(PATHS.schedules, { params: { per_page: '100', ...filters }, headers: this.headers() });
   }

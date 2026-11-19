@@ -1,6 +1,4 @@
-// نستورد الدوال اللي Playwright بيستخدمها عشان نعرّف الإعدادات والأجهزة.
 import { defineConfig, devices } from '@playwright/test';
-// نستورد دالة من Node بتفحص إذا كان ملف .env موجود.
 import { existsSync } from 'node:fs';
 
 // نحمّل المتغيرات من ملف .env (مدعوم في Node 20.12 وأحدث)، بس لو الملف موجود.
@@ -36,15 +34,11 @@ export default defineConfig({
 
   // إعدادات مشتركة بين كل الـ projects اللي تحت.
   use: {
-    // عنوان الموقع بيتاخد من .env، فمفيش عنوان مكتوب جوه التستات.
     baseURL: process.env.BASE_URL,
-    // بنحتفظ بالـ trace (تسجيل خطوة بخطوة) لما التست يفشل بس.
     trace: 'retain-on-failure',
-    // بناخد سكرينشوت لما التست يفشل بس.
     screenshot: 'only-on-failure',
     // بنسجّل فيديو لكل تست UI عشان تقدري تتفرجي عليه بعدين في تقرير HTML.
     video: 'on',
-    // لوحة التحكم عربية وسعودية (SRS 11: توقيت Asia/Riyadh).
     locale: 'ar-SA',
     timezoneId: 'Asia/Riyadh',
   },
@@ -74,7 +68,6 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'], storageState: '.auth/merchant.json' },
     },
     {
-      // تستات الـ API – من غير متصفح، بتنده الباك إند مباشرة.
       name: 'api',
       testMatch: 'modules/*/api/**/*.spec.ts',
       use: { baseURL: process.env.API_URL || undefined, video: 'off' },

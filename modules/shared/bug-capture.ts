@@ -1,5 +1,3 @@
-// الملف ده هو "التست" بتاعنا اللي بيلتقط الأخطاء أوتوماتيك.
-// نستورد test و expect بتوع Playwright، ومعاهم أدوات Node اللي بتكتب الملفات وتحدد المسارات.
 import { test as base, expect, Page } from '@playwright/test';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
@@ -41,7 +39,6 @@ function maskSecrets(text: string): string {
       }
       return value;
     };
-    // بنرجّع الـ JSON بعد إخفاء الأسرار، منسّق وسهل القراءة.
     return JSON.stringify(walk(JSON.parse(text)), null, 2);
   } catch {
     // لو النص مش JSON (زي form body: "email=a&password=b") بنخفي الأسرار بالـ regex ونقصّ الطول.
@@ -128,7 +125,6 @@ function previewText(call: Call): string {
   try {
     json = JSON.parse(call.responseBody);
   } catch {
-    // الرد مش JSON (مثلًا صفحة HTML).
     return call.responseBody ? `(not JSON · ${call.responseBody.length} characters)` : '(empty response)';
   }
   // لو الرد قايمة بنعرض عدد العناصر بس.
@@ -248,9 +244,7 @@ function stripColors(text: string): string {
 // بنستنى لحد ما الصفحة تهدى (الشبكة تخلص وأشكال التحميل الرمادية تختفي)، عشان السكرينشوت يبان فيه المشكلة الحقيقية مش شاشة تحميل.
 async function waitUntilPageIsReady(page: Page) {
   try {
-    // نستنى الشبكة تهدى (لحد 10 ثواني).
     await page.waitForLoadState('networkidle', { timeout: 10_000 }).catch(() => {});
-    // نستنى الأشكال الرمادية بتاعة التحميل تختفي (لحد 5 ثواني).
     await page.locator('.animate-pulse').first().waitFor({ state: 'hidden', timeout: 5_000 }).catch(() => {});
     // وقفة قصيرة عشان الرسايل (toast) والحركات تخلص ظهور.
     await page.waitForTimeout(1_000);
@@ -270,7 +264,6 @@ function apiDetails(title: string, error: string, side: string, reason: string, 
     out.push('', `--- Call ${i + 1}: ${call.method} ${call.status} ${statusName(call.status)} • ${call.ms} ms`);
     out.push(`URL: ${call.url}`);
     out.push(`PAYLOAD: ${call.requestSize ? maskSecrets(call.requestBody) : '(no body)'}`);
-    // صفحة HTML بنلخّصها، والـ JSON بنعرضه كامل مع إخفاء الأسرار.
     const response = !call.responseBody ? '(empty)' : call.responseBody.trim().startsWith('<') ? `(HTML page · ${call.responseBody.length} characters)` : maskSecrets(call.responseBody);
     out.push(`RESPONSE: ${response}`);
   });
@@ -306,7 +299,6 @@ export const test = base.extend<{ bugCapture: void; apiCalls: Call[] }>({
         return async (...args: any[]) => {
           const started = Date.now();
           const response = await value.apply(target, args);
-          // بنعرف إيه اللي اتبعت في الطلب.
           const options = (typeof args[0] === 'string' ? args[1] : args[0]) ?? {};
           let body = '';
           let type = '';
@@ -342,14 +334,11 @@ export const test = base.extend<{ bugCapture: void; apiCalls: Call[] }>({
 
   bugCapture: [
     async ({ page, apiCalls }, use, testInfo) => {
-      // قوايم بتتملي أثناء ما التست شغّال.
       const calls: Call[] = [];
       const pending: Promise<void>[] = [];
       const pageErrors: string[] = [];
 
-      // بنسجّل كل طلب API (fetch / XHR) مع الـ request والـ response بتوعه.
       page.on('response', (response) => {
-        // بنبص على طلبات الـ API بس، مش الصور والسكريبتات.
         const request = response.request();
         if (!['fetch', 'xhr'].includes(request.resourceType())) return;
         if (IGNORED_URLS.test(request.url())) return;
@@ -377,44 +366,33 @@ export const test = base.extend<{ bugCapture: void; apiCalls: Call[] }>({
           })()
         );
       });
-      // بنسجّل أخطاء JavaScript اللي بتحصل في الصفحة.
       page.on('pageerror', (error) => pageErrors.push(error.message));
 
-      // هنا التست نفسه بيشتغل.
       await use();
 
-      // التستات المتخطية مفيهاش حاجة نعرضها.
       if (testInfo.status === 'skipped') return;
 
-      // نستنى لحد ما كل أجسام الردود تتقرا.
       await Promise.all(pending);
 
-      // طلبات الـ API اللي اتعملت من fixture اسمه request بتتضاف للقايمة.
       calls.push(...apiCalls);
 
-      // بنختار الطلب المعروض ونقرر إذا كانت المشكلة Front-end ولا Back-end.
       const mainCall = pickMainCall(calls);
       const { side, reason } = classify(calls, pageErrors);
       const failed = testInfo.status !== testInfo.expectedStatus;
 
-      // تستات الـ API موجودة في modules/<module>/api/.
       const isApiTest = /modules[\\/][^\\/]+[\\/]api[\\/]/.test(testInfo.file);
 
       if (failed || (!isApiTest && calls.some((c) => c.status >= 400))) {
-        // تست فشل (أو تست UI فيه خطأ API): بنعرض التفاصيل كاملة.
         await testInfo.attach('terminal-summary', {
           body: terminalSummary(failed, calls, mainCall, side, reason),
           contentType: 'text/plain',
         });
       } else if (isApiTest) {
-        // تست API نجح: بنعرض قايمة الـ endpoints اللي اشتغلت بس.
         await testInfo.attach('terminal-summary', { body: apiEndpointsSummary(calls), contentType: 'text/plain' });
       }
 
-      // الملفات (السكرينشوت والتقرير) بتتحفظ للتستات الفاشلة بس.
       if (!failed) return;
 
-      // اسم الموديول بنطلعه من مسار ملف التست: modules/<module>/...
       const moduleName = testInfo.file.match(/modules[\\/]([^\\/]+)/)?.[1] ?? 'general';
       // تستات الـ API ليها فولدر لوحدها: api-<module> (api-auth-V1, api-profile-V1, ...)، وتستات الـ UI بتستخدم <module>-V1.
       // فولدر التشغيل ده للموديول ده.
@@ -430,7 +408,6 @@ export const test = base.extend<{ bugCapture: void; apiCalls: Call[] }>({
       // اسم الملف فيه اسم المجموعة واسم التست (مثلًا اسم الأداة) عشان نلاقيه بسهولة.
       const screenshotFile = path.join(folder, `${number}-${slug(testInfo.titlePath.slice(1).join(' '))}.png`);
 
-      // بناخد سكرينشوت لحالة الفشل.
       try {
         // تست الـ API عمره ما فتح صفحة: بنرسم التقرير (الخطأ + الطلب + الرد) ونصوّره.
         if (page.url() === 'about:blank') {
@@ -438,7 +415,6 @@ export const test = base.extend<{ bugCapture: void; apiCalls: Call[] }>({
           const error = stripColors(testInfo.errors[0]?.message ?? 'The test failed.').slice(0, 1500);
           await drawApiReport(page, testInfo.titlePath.slice(1).join(' › '), error, summary);
         } else {
-          // تست UI: نستنى لحد ما الصفحة تعرض حالتها الحقيقية وبعدين نصوّر.
           await waitUntilPageIsReady(page);
         }
         await page.screenshot({ path: screenshotFile, fullPage: true });

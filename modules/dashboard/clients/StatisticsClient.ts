@@ -1,6 +1,4 @@
-// نستورد نوع Playwright الخاص بطلبات HTTP.
 import { APIRequestContext } from '@playwright/test';
-// نستورد انتظار الحد الأقصى للطلبات.
 import { waitForStatisticsSlot, sleep } from './rate-limit';
 
 // مسارات الـ endpoints من ملف Toolifiy.JSON (تاج "Tool Statistics").
@@ -12,12 +10,9 @@ const PATHS = {
 
 // عميل API للإحصائيات: دالة بسيطة لكل endpoint.
 export class StatisticsClient {
-  // كائن الطلبات (الـ baseURL هو API_URL).
   readonly request: APIRequestContext;
-  // الـ JWT بتاع التاجر اللي عامل تسجيل دخول.
   readonly token: string;
 
-  // نحفظ كائن الطلبات والتوكن.
   constructor(request: APIRequestContext, token: string) {
     this.request = request;
     this.token = token;
@@ -30,7 +25,6 @@ export class StatisticsClient {
 
   // طلب GET بيستنى مكانه في حد الـ 10 طلبات في الدقيقة، ولو رجع 429 بيستنى ويحاول تاني.
   private async get(url: string, params: Record<string, string>, language: string) {
-    // نبعت الطلب أول مرة، ولو رجع 429 نستنى دقيقة ونحاول (لحد 3 مرات تانية).
     await waitForStatisticsSlot();
     let response = await this.request.get(url, { params, headers: this.headers(language) });
     for (let retry = 0; retry < 3 && response.status() === 429; retry++) {

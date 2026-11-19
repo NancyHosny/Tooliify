@@ -1,24 +1,15 @@
-// نستورد أنواع Playwright.
 import { Page, Locator } from '@playwright/test';
-// نستورد بيانات التست (المسار والنصوص).
 import { paths, scheduleTexts } from '../../../test-data/test-data';
 
 // Page Object لصفحة "الجدولة": جدول فيه صف لكل أداة تدعم الجدولة،
 // وزرار "جدولة مجموعة" بيفتح لوحة جانبية لجدولة أكتر من أداة مرة واحدة.
 export class SchedulingPage {
-  // التاب (الصفحة) بتاعة المتصفح.
   readonly page: Page;
-  // عنوان الصفحة "الجدولة".
   readonly heading: Locator;
-  // خانة البحث (في الصفحة نسختين، واحدة بس ظاهرة).
   readonly searchInput: Locator;
-  // نص "N اداة مضافة" تحت العنوان.
   readonly countText: Locator;
-  // زرار "جدولة مجموعة".
   readonly groupButton: Locator;
-  // صف لكل أداة (سطر grid واحد).
   readonly rows: Locator;
-  // رسالة الشاشة الفاضية وزرارها (لما مفيش أدوات للجدولة).
   readonly emptyTitle: Locator;
   readonly emptyHint: Locator;
   readonly addToolsButton: Locator;
@@ -31,22 +22,15 @@ export class SchedulingPage {
   readonly groupEndTime: Locator;
   readonly groupSubmit: Locator;
   readonly groupCloseButton: Locator;
-  // خانة "تحديد كل الأدوات" في رأس الجدول.
   readonly selectAll: Locator;
 
-  // بنبني الـ Page Object.
   constructor(page: Page) {
-    // نحفظ التاب.
     this.page = page;
-    // العنوان: الـ h1 بتاع الصفحة.
     this.heading = page.getByRole('heading', { level: 1, name: 'الجدولة', exact: true });
-    // البحث: خانة search الظاهرة بس.
     this.searchInput = page.locator('input[type="search"]:visible');
     this.countText = page.getByText(/\d+ اداة مضافة/).first();
     this.groupButton = page.getByRole('button', { name: scheduleTexts.groupButton });
-    // الصفوف: سطر grid جوه جسم الجدول.
     this.rows = page.locator('tbody div[style*="grid-template-columns"]');
-    // الشاشة الفاضية.
     this.emptyTitle = page.getByText(scheduleTexts.emptyTitle);
     this.emptyHint = page.getByText(scheduleTexts.emptyHint);
     this.addToolsButton = page.getByRole('button', { name: scheduleTexts.addTools });
@@ -64,11 +48,8 @@ export class SchedulingPage {
 
   // نفتح صفحة الجدولة.
   async open() {
-    // نروح لـ BASE_URL + /ar/scheduling.
     await this.page.goto(paths.scheduling, { waitUntil: 'domcontentloaded' });
-    // نستنى العنوان.
     await this.heading.waitFor();
-    // نستنى لحد ما الصفوف أو الشاشة الفاضية تظهر (العنوان بيظهر قبل البيانات).
     await this.rows.first().or(this.emptyTitle).waitFor({ timeout: 30_000 });
   }
 
@@ -106,11 +87,8 @@ export class SchedulingPage {
   // نختار يوم من التقويم: نفتح التقويم من الخانة، ننتقل للشهر الجاي (عشان التاريخ يبقى في المستقبل)، ونضغط على اليوم.
   // اليوم من 10 لـ 20 عشان يظهر مرة واحدة بس في الشبكة (الأيام اللي من الشهور التانية بتبقى أول الشهر أو آخره).
   async pickDate(trigger: Locator, day: number) {
-    // نفتح التقويم.
     await trigger.click();
-    // ننتقل للشهر الجاي.
     await this.page.getByRole('button', { name: scheduleTexts.nextMonth }).click();
-    // نضغط على اليوم المطلوب.
     await this.page.locator('td[role="gridcell"] button', { hasText: new RegExp(`^${day}$`) }).click();
   }
 }

@@ -1,6 +1,4 @@
-// نستورد أنواع الـ Reporter بتاعة Playwright.
 import type { Reporter, TestCase, TestResult } from '@playwright/test/reporter';
-// نستورد الدالة اللي بتصلّح العربي في الترمنال (توصيل الحروف + عكس الاتجاه).
 import { forTerminal } from './arabic-terminal';
 
 // ألوان الترمنال (أكواد ANSI).
@@ -30,15 +28,13 @@ function colorLine(line: string): string {
 type Item = { title: string; extra: string };
 
 // Reporter صغير بيعمل حاجتين:
-// 1) بعد كل تست بيطبع نص "terminal-summary" اللي جهّزه bug-capture.ts.
-// 2) في آخر التشغيل بيطبع قايمة التستات الفاشلة (مع مكان السكرينشوت) والمتخطية (مع السبب).
+// 1) بعد كل تست بيطبع ملخص bug-capture.ts، 2) في الآخر بيطبع الفاشلة (مع السكرينشوت) والمتخطية (مع السبب).
 export default class TerminalSummaryReporter implements Reporter {
   // التستات الفاشلة: العنوان + مكان حفظ السكرينشوت.
   private failed: Item[] = [];
   // التستات المتخطية: العنوان + السبب.
   private skipped: Item[] = [];
 
-  // بيتنفذ مرة واحدة لما Playwright يشغّل الـ reporter (قبل أول تست).
   constructor() {
     // بنغلّف دالة الكتابة في الترمنال: أي نص بيتطبع (حتى سطور reporter الـ list الجاهز بتاع Playwright) بنصلّح العربي اللي فيه
     // (توصيل الحروف وعكس الاتجاه) قبل ما يتكتب. النص اللي اتصلّح قبل كده مبيتأثرش لو عدّى هنا تاني.
@@ -49,7 +45,6 @@ export default class TerminalSummaryReporter implements Reporter {
 
   // Playwright بينده الدالة دي كل ما تست يخلص.
   onTestEnd(test: TestCase, result: TestResult) {
-    // اسم التست زي ما هيتعرض في القايمة: "describe › test".
     const title = test.titlePath().filter((part) => part && !part.endsWith('.ts') && !/^\[/.test(part)).join(' › ');
 
     // بنفتكر التستات الفاشلة (تست نجح في المحاولة التانية مش بيتحسب فاشل).
@@ -66,7 +61,6 @@ export default class TerminalSummaryReporter implements Reporter {
 
     // بندوّر على النص اللي bug-capture ضافه للتست.
     const summary = result.attachments.find((a) => a.name === 'terminal-summary');
-    // مفيش حاجة نطبعها (التست نجح من غير أخطاء API، أو اتخطى).
     if (!summary?.body) return;
     const text = summary.body.toString('utf-8');
     // بنطبع الملخص بين سطرين فاضيين عشان يبان.
@@ -75,10 +69,8 @@ export default class TerminalSummaryReporter implements Reporter {
 
   // بتتنده مرة واحدة لما التشغيل كله يخلص: بنطبع القايمتين.
   onEnd() {
-    // لو مفيش فاشل ولا متخطي، مفيش حاجة نطبعها.
     if (this.failed.length === 0 && this.skipped.length === 0) return;
 
-    // التستات الفاشلة.
     if (this.failed.length > 0) {
       console.log('\n' + paint(RED, `━━ ❌ Failed tests (${this.failed.length}) ━━`));
       this.failed.forEach((item, i) => {

@@ -1,6 +1,4 @@
-// نستورد نوع Playwright الخاص بطلبات HTTP.
 import { APIRequestContext } from '@playwright/test';
-// نستورد عميل Auth (عشان نسجّل دخول) وبيانات التاجر.
 import { AuthClient } from '../auth/clients/AuthClient';
 import { validMerchant } from '../../test-data/test-data';
 
